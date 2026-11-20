@@ -12,6 +12,8 @@
 %   mode      'b2b' for two baluns back to back (default), or 'single' for
 %             one balun whose balanced end is closed by a lumped port
 %   zload     resistance of that lumped port in ohm (default 188)
+%   excite    port that is driven, 1 (default) or 2; 2 is used with mode
+%             'single' to get the reflection seen from the balanced end
 %   board     substrate width in mm (default 30)
 %   ext       50 ohm line added outside each end for the ports (default 10)
 %   lossless  true to use PEC and a loss-free substrate (default false)
@@ -29,6 +31,7 @@ opts = set_default(opts, 'board', 30);
 opts = set_default(opts, 'ext', 10);
 opts = set_default(opts, 'lossless', false);
 opts = set_default(opts, 'dump_f', 2.5e9);
+opts = set_default(opts, 'excite', 1);
 single = strcmp(opts.mode, 'single');
 
 setup_paths();
@@ -99,12 +102,12 @@ CSX = DefineRectGrid(CSX, unit, mesh);
 % Microstrip port on the 50 ohm extension, reference plane at x = -L.
 CSX = AddMetal(CSX, 'PEC');
 [CSX, port{1}] = AddMSLPort(CSX, 999, 1, 'PEC', [-L-ext -p.w50/2 h], [-L p.w50/2 0], 'x', [0 0 -1], ...
-    'ExcitePort', true, 'FeedShift', 4, 'MeasPlaneShift', ext);
+    'ExcitePort', opts.excite == 1, 'FeedShift', 4, 'MeasPlaneShift', ext);
 if single
     % Lumped port across the substrate at the balanced end, between the
     % ends of the two strips.
     we = w(end);
-    [CSX, port{2}] = AddLumpedPort(CSX, 999, 2, opts.zload, [0 -we/2 0], [0 we/2 h], [0 0 1]);
+    [CSX, port{2}] = AddLumpedPort(CSX, 999, 2, opts.zload, [0 -we/2 0], [0 we/2 h], [0 0 1], opts.excite == 2);
     xm = -5;
 else
     [CSX, port{2}] = AddMSLPort(CSX, 999, 2, 'PEC', [L+ext -p.w50/2 h], [L p.w50/2 0], 'x', [0 0 -1], ...

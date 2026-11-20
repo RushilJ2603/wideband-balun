@@ -1,6 +1,7 @@
 % Reads a finished balun run and writes the results to results/<name>.csv.
 %
-% CSV columns: frequency (GHz), S11 and S21 (real, imaginary), and the
+% CSV columns: frequency (GHz), S11 and S21 (real, imaginary), or S22 and
+% S12 under the same names when port 2 is driven, and the
 % currents through the top and bottom strip at the junction (real,
 % imaginary). The field dumps are read by export_fields.py instead, since
 % MATLAB's HDF5 reader cannot open files written by HDF5 2.x.
@@ -16,8 +17,11 @@ zref = S.meta.zref;
 for k = 1:2
     port{k} = calcPort(port{k}, sim, f, 'RefImpedance', zref(k));
 end
-s11 = port{1}.uf.ref ./ port{1}.uf.inc;
-s21 = (port{2}.uf.ref / sqrt(zref(2))) ./ (port{1}.uf.inc / sqrt(zref(1)));
+% With port 2 driven the columns hold S22 and S12 under the same names.
+e = 1; o = 2;
+if isfield(S.meta.opts, 'excite') && S.meta.opts.excite == 2, e = 2; o = 1; end
+s11 = port{e}.uf.ref ./ port{e}.uf.inc;
+s21 = (port{o}.uf.ref / sqrt(zref(o))) ./ (port{e}.uf.inc / sqrt(zref(e)));
 
 I = ReadUI({'It_top', 'It_bot'}, sim, f);
 it = I.FD{1}.val;
