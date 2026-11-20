@@ -2,7 +2,8 @@
 %
 %   post_spiral(name)
 %
-% Writes the input reflection to results/<name>.csv and the input file
+% Writes the input reflection, referred to the port impedance (50 ohm at
+% the balun, 188 ohm for a lumped feed), to results/<name>.csv and the input file
 % nf2ff.xml for the openEMS far-field tool in the run folder. The tool is
 % then run on that file (nf2ff.exe nf2ff.xml) and far_field.py reads its
 % output. This replaces CalcNF2FF, whose reader relies on MATLAB's HDF5
@@ -17,7 +18,9 @@ sim = fullfile(tempdir, 'balun_sims', name);
 S = load(fullfile(sim, 'ports.mat'));
 
 f = linspace(1e9, 16e9, 301);
-port = calcPort(S.port, sim, f, 'RefImpedance', 50);
+zref = 50;
+if isfield(S.meta, 'zref'), zref = S.meta.zref; end
+port = calcPort(S.port, sim, f, 'RefImpedance', zref);
 s11 = port.uf.ref ./ port.uf.inc;
 out = fullfile(fileparts(mfilename('fullpath')), '..', 'results');
 writetable(table(f'/1e9, real(s11)', imag(s11)', 'VariableNames', {'f_GHz', 's11_re', 's11_im'}), ...

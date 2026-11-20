@@ -12,6 +12,8 @@
 % at z = -L.
 %
 % opts fields (all optional):
+%   feed    'balun' (default) or 'lumped': the spiral alone, fed by a 188
+%           ohm lumped port across the gap between the two arm ends
 %   turns   number of turns (default 8)
 %   r1      inner radius and arm width in mm (default 0.86)
 %   board   spiral board side in mm (default 60)
@@ -23,6 +25,8 @@ opts = set_default(opts, 'turns', 8);
 opts = set_default(opts, 'r1', 0.86);
 opts = set_default(opts, 'board', 60);
 opts = set_default(opts, 'nf2ff_f', [2 2.5 3 4 5 6 10 15]*1e9);
+opts = set_default(opts, 'feed', 'balun');
+lumped = strcmp(opts.feed, 'lumped');
 
 setup_paths();
 p = balun_params();
@@ -35,7 +39,13 @@ air = 25;
 unit = 1e-3;
 
 FDTD = InitFDTD('NrTS', 400000, 'EndCriteria', 1e-4);
-FDTD = SetGaussExcite(FDTD, 8.5e9, 7.5e9);
+% Sine-modulated Gaussian pulse, 1 to 16 GHz. It is odd about its centre,
+% so it has no DC content; the cosine pulse of SetGaussExcite has some, and
+% with the balun feed that DC part leaves a static field in the substrate
+% that decays only through the substrate loss.
+fc = 7.5e9; fm = 8.5e9;
+t0 = 9 / (2*pi*fc); tau = 3 / (2*pi*fc);
+FDTD = SetCustomExcite(FDTD, fm + fc, sprintf('sin(2*pi*%.6g*(t-%.6g))*exp(-((t-%.6g)/%.6g)^2)', fm, t0, t0, tau));
 FDTD = SetBoundaryCond(FDTD, {'PML_8' 'PML_8' 'PML_8' 'PML_8' 'PML_8' 'PML_8'});
 CSX = InitCSX();
 
@@ -57,6 +67,8 @@ CSX = add_substrate(CSX, p, [-opts.board/2 -opts.board/2 0], [opts.board/2 opts.
 % Balun board under the spiral. Its outline is given from the 50 ohm end,
 % so the balun coordinate zb maps to z = zb - L.
 zz = [-ext; zb] - L;
+we = w(end);
+if ~lumped
 ww = [p.w50; w];
 wwb = [wb(1); wb];
 topst = [zz' fliplr(zz'); ww'/2 fliplr(-ww'/2)];
@@ -73,11 +85,11 @@ CSX = AddBox(CSX, 'balun_sub', 0, [-h/2 -bw/2 -L-ext], [h/2 bw/2 0]);
 
 % The strips continue up through the spiral board and onto its top face,
 % where short tabs join them to the inner ends of the arms.
-we = w(end);
 CSX = AddBox(CSX, 'balun', 11, [h/2 -we/2 0], [h/2 we/2 h]);
 CSX = AddBox(CSX, 'balun', 11, [-h/2 -we/2 0], [-h/2 we/2 h]);
 CSX = AddBox(CSX, 'balun', 11, [h/2 -we/2 h], [r1 + r1/2 we/2 h]);
 CSX = AddBox(CSX, 'balun', 11, [-h/2 -we/2 h], [-r1 - r1/2 we/2 h]);
+end
 
 % Mesh
 half = opts.board/2;
@@ -85,8 +97,12 @@ fx = [-h/2 h/2 0 r1 -r1 2*r1 -2*r1 [1 -1]*half [1 -1]*(half + air)];
 mesh.x = mesh_axis(fx, [-half half 0.25; -h/2 h/2 h/6], 2.5, 1.3);
 fy = [0 [1 -1]*we/2 [1 -1]*p.w50/2 [1 -1]*wb(1)/2 [1 -1]*half [1 -1]*(half + air)];
 mesh.y = mesh_axis(fy, [-half half 0.25], 2.5, 1.3);
-fz = [h 0 h/2 zz' -L-ext-air/2 h+air];
-mesh.z = mesh_axis(fz, [0 h h/6; -L-ext 0 0.45], 2.5, 1.3);
+if lumped
+    mesh.z = mesh_axis([h 0 h/2 -air h+air], [0 h h/6], 2.5, 1.3);
+else
+    fz = [h 0 h/2 zz' -L-ext-air/2 h+air];
+    mesh.z = mesh_axis(fz, [0 h h/6; -L-ext 0 0.45], 2.5, 1.3);
+end
 CSX = DefineRectGrid(CSX, unit, mesh);
 
 % Microstrip port at the bottom of the balun, wave travelling in +z, field
@@ -95,9 +111,15 @@ CSX = DefineRectGrid(CSX, unit, mesh);
 % antenna are floating conductors, and the small DC content of the
 % excitation leaves a static charge on them that decays only through the
 % substrate loss.
-CSX = AddMetal(CSX, 'PEC');
-[CSX, port] = AddMSLPort(CSX, 999, 1, 'PEC', [h/2 -p.w50/2 -L-ext], [-h/2 p.w50/2 -L], 'z', [-1 0 0], ...
-    'ExcitePort', true, 'FeedShift', 2, 'MeasPlaneShift', ext, 'Feed_R', 50);
+if lumped
+    [CSX, port] = AddLumpedPort(CSX, 999, 1, 188, [-r1 -r1/2 h], [r1 r1/2 h], [1 0 0], true);
+    zref = 188;
+else
+    CSX = AddMetal(CSX, 'PEC');
+    [CSX, port] = AddMSLPort(CSX, 999, 1, 'PEC', [h/2 -p.w50/2 -L-ext], [-h/2 p.w50/2 -L], 'z', [-1 0 0], ...
+        'ExcitePort', true, 'FeedShift', 2, 'MeasPlaneShift', ext, 'Feed_R', 50);
+    zref = 50;
+end
 
 % Near-field box for the far-field transform, a few cells inside the PML.
 % The box fields are kept in the frequency domain at the pattern
@@ -108,7 +130,7 @@ nb_hi = [mesh.x(end-11) mesh.y(end-11) mesh.z(end-11)];
 
 sim = sim_dir(name);
 WriteOpenEMS(fullfile(sim, 'model.xml'), FDTD, CSX);
-meta.name = name; meta.geomfile = geomfile; meta.opts = opts;
+meta.name = name; meta.geomfile = geomfile; meta.opts = opts; meta.zref = zref;
 meta.ncells = numel(mesh.x) * numel(mesh.y) * numel(mesh.z);
 save(fullfile(sim, 'ports.mat'), 'port', 'nf2ff', 'meta');
 fprintf('%s: %d x %d x %d = %.2f M cells, smallest cell %.3f mm, written to %s\n', name, ...

@@ -5,7 +5,9 @@ far-field tool from the run folder) and writes
                                 and the yz plane (phi = 90), theta from
                                 -180 to 180 degrees, with the directivity
   results/<name>_hpbw.csv       half-power beamwidth in each plane around
-                                broadside above the spiral (theta = 0)
+                                broadside above the spiral (theta = 0), of
+                                the total field and of E_theta and E_phi
+                                alone
 
 The xz plane contains the balanced feed and is called the E-plane, the yz
 plane the H-plane. Needs h5py.
@@ -33,7 +35,7 @@ def read(name):
         for k in range(len(freq)):
             et = g[f"E_theta/FD/f{k}_real"][()] + 1j * g[f"E_theta/FD/f{k}_imag"][()]
             ep = g[f"E_phi/FD/f{k}_real"][()] + 1j * g[f"E_phi/FD/f{k}_imag"][()]
-            E.append(np.sqrt(np.abs(et) ** 2 + np.abs(ep) ** 2))
+            E.append((np.sqrt(np.abs(et) ** 2 + np.abs(ep) ** 2), np.abs(et), np.abs(ep)))
     return freq, dmax, theta, phi, E
 
 
@@ -67,14 +69,16 @@ def process(name):
     freq, dmax, theta, phi, E = read(name)
     rows, bw = [], []
     for k, fr in enumerate(freq):
-        widths = []
-        for p0, plane in ((0, "E"), (90, "H")):
-            th, e = cut(E[k], theta, phi, p0)
-            g = 20 * np.log10(e / e.max())
-            rows += [dict(f_GHz=fr / 1e9, plane=plane, theta_deg=t, E_dB=round(v, 2)) for t, v in zip(th, g)]
-            widths.append(hpbw(th, g))
-        bw.append(dict(f_GHz=fr / 1e9, hpbw_E_deg=round(widths[0], 1), hpbw_H_deg=round(widths[1], 1),
-                       Dmax_dBi=round(10 * np.log10(dmax[k]), 2)))
+        row = dict(f_GHz=round(fr / 1e9, 2))
+        for comp, tag in zip(E[k], ("", "_theta", "_phi")):
+            for p0, plane in ((0, "E"), (90, "H")):
+                th, e = cut(comp, theta, phi, p0)
+                g = 20 * np.log10(e / e.max() + 1e-12)
+                if tag == "":
+                    rows += [dict(f_GHz=fr / 1e9, plane=plane, theta_deg=t, E_dB=round(v, 2)) for t, v in zip(th, g)]
+                row[f"hpbw_{plane}{tag}_deg"] = round(hpbw(th, g), 1)
+        row["Dmax_dBi"] = round(10 * np.log10(dmax[k]), 2)
+        bw.append(row)
     pd.DataFrame(rows).to_csv(RES / f"{name}_patterns.csv", index=False)
     d = pd.DataFrame(bw)
     d.to_csv(RES / f"{name}_hpbw.csv", index=False)
