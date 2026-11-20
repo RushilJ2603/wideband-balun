@@ -258,6 +258,117 @@ def fig_compare(out):
     save(fig, out)
 
 
+# Impedance along the balun: published outline, the exponential law it
+# was meant to follow, and the improved Klopfenstein profile.
+def fig_profiles(out):
+    pb, im = RES / "profile_paper_B.csv", RES / "profile_improved.csv"
+    if not (pb.exists() and im.exists()):
+        return
+    pb, im = pd.read_csv(pb), pd.read_csv(im)
+    fig, ax = plt.subplots(figsize=(7.2, 2.9))
+    zz = np.linspace(0, 50, 200)
+    ax.plot(zz, 50 * np.exp(np.log(188 / 50) * zz / 50), color=GREY, ls="--", label="exponential law of the paper")
+    ax.plot(pb.z_mm, pb.Z_ohm, color=ORANGE, label="published widths (Table I)")
+    ax.plot(im.z_mm, im.Z_ohm, color=BLUE, label="improved, Klopfenstein")
+    ax.set_xlabel("distance from the 50 Ω end, z (mm)")
+    ax.set_ylabel("line impedance (Ω)")
+    ax.set_xlim(0, 70)
+    ax.legend(fontsize=7, loc="lower right")
+    fig.tight_layout()
+    save(fig, out)
+
+
+# Transmission-line model against the full-wave result for the published
+# outline, back to back.
+def fig_linemodel(out):
+    from taper import profile, cascade, back_to_back
+    d = load_sp("b2b_paper_B")
+    if d is None:
+        return
+    g = load_geom("paper_B")
+    z, Z, e = profile(g, dz=0.5)
+    zb, Zb, eb = back_to_back(z, Z, e)
+    f = d.f_GHz.to_numpy()
+    s11, _ = cascade(zb, Zb, eb, f * 1e9)
+    fig, ax = plt.subplots(figsize=(7.2, 2.9))
+    ax.plot(f, db(s11), color=GREY, ls="--", label="line model (2D solver + cascade)")
+    ax.plot(f, db(d.s11), color=ORANGE, label="openEMS")
+    ax.axhline(-10, color=MUTED, lw=0.7, ls=":")
+    ax.set_xlim(0.5, 15)
+    ax.set_ylim(-45, 0)
+    ax.set_xlabel("frequency (GHz)")
+    ax.set_ylabel("|S11| (dB)")
+    ax.set_title("Published dimensions, back to back", fontsize=9, loc="left", color=INK)
+    ax.legend(fontsize=7, loc="lower right")
+    fig.tight_layout()
+    save(fig, out)
+
+
+# Long and short balanced section between the two baluns.
+def fig_long_short(out):
+    a, b = load_sp("b2b_paper_B"), load_sp("b2b_paper_B_short")
+    if a is None or b is None:
+        return
+    fig, ax = plt.subplots(figsize=(7.2, 2.9))
+    ax.plot(a.f_GHz, db(a.s21), color=ORANGE, label="|S21|, 40 mm balanced section")
+    ax.plot(b.f_GHz, db(b.s21), color=BLUE, label="|S21|, 4 mm balanced section")
+    ax.plot(a.f_GHz, 10 * np.log10(np.abs(a.s11) ** 2 + np.abs(a.s21) ** 2), color=ORANGE, ls="--", lw=1,
+            label="|S11|² + |S21|², 40 mm")
+    ax.plot(b.f_GHz, 10 * np.log10(np.abs(b.s11) ** 2 + np.abs(b.s21) ** 2), color=BLUE, ls="--", lw=1,
+            label="|S11|² + |S21|², 4 mm")
+    ax.set_xlim(0.5, 15)
+    ax.set_ylim(-4, 0.2)
+    ax.set_xlabel("frequency (GHz)")
+    ax.set_ylabel("dB")
+    ax.legend(fontsize=7, loc="lower left", ncol=2)
+    fig.tight_layout()
+    save(fig, out)
+
+
+# Spiral antenna fed by the balun: input reflection against Fig. 10 of the
+# paper.
+def fig_spiral_s11(names, labels, out):
+    ds = [load_sp(n) for n in names]
+    if any(d is None for d in ds):
+        return
+    p = load_paper("fig10_spiral")
+    fig, ax = plt.subplots(figsize=(7.2, 3.0))
+    if p is not None:
+        ax.plot(p.f_GHz, p.paper_sim_s11_dB, color=GREY, lw=1.2, ls="--", label="paper, CST (Fig. 10)")
+        ax.plot(p.f_GHz, p.paper_meas_s11_dB, color=GREY, lw=0.9, label="paper, measured")
+    for d, lab, col in zip(ds, labels, (ORANGE, BLUE)):
+        ax.plot(d.f_GHz, db(d.s11), color=col, label=lab)
+    ax.axhline(-10, color=MUTED, lw=0.7, ls=":")
+    ax.set_xlim(1, 15)
+    ax.set_ylim(-40, 0)
+    ax.set_xlabel("frequency (GHz)")
+    ax.set_ylabel("|S11| at the 50 Ω input (dB)")
+    ax.legend(fontsize=7, loc="lower right", ncol=2)
+    fig.tight_layout()
+    save(fig, out)
+
+
+# Normalised far field in the two principal planes at one frequency.
+def fig_spiral_pattern(name, out, f_ghz=10.0):
+    f = RES / f"{name}_patterns.csv"
+    if not f.exists():
+        return
+    d = pd.read_csv(f)
+    d = d[np.isclose(d.f_GHz, f_ghz)]
+    fig, ax = plt.subplots(figsize=(4.2, 4.2), subplot_kw={"projection": "polar"})
+    for plane, col, lab in (("E", BLUE, "xz plane (E)"), ("H", ORANGE, "yz plane (H)")):
+        c = d[d.plane == plane]
+        ax.plot(np.radians(c.theta_deg), np.clip(c.E_dB, -30, 0), color=col, label=lab)
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
+    ax.set_rlim(-30, 0)
+    ax.set_rticks([-30, -20, -10, 0])
+    ax.set_title(f"{f_ghz:g} GHz, normalised |E| (dB)", fontsize=9, color=INK)
+    ax.legend(fontsize=7, loc="lower center", bbox_to_anchor=(0.5, -0.18), ncol=2)
+    fig.tight_layout()
+    save(fig, out)
+
+
 if __name__ == "__main__":
     fig_layout(["paper_A", "paper_B"], ["Structure A", "Structure B"], "fig_layout_paper")
     fig_layout(["paper_B", "improved"], ["Structure B (paper)", "Improved"], "fig_layout_improved")
@@ -266,6 +377,11 @@ if __name__ == "__main__":
     fig_fields("b2b_improved", "fig_fields_b2b_improved_10GHz", k=1, title="Improved back to back, ")
     fig_balance(["b2b_paper_B", "b2b_improved"], ["paper dimensions", "improved"], "fig_balance")
     fig_compare("fig_compare")
+    fig_profiles("fig_profiles")
+    fig_linemodel("fig_linemodel")
+    fig_long_short("fig_long_short")
+    fig_spiral_s11(["spiral_paper_B"], ["published balun, openEMS"], "fig_spiral_s11")
+    fig_spiral_pattern("spiral_paper_B", "fig_spiral_pattern_10GHz")
     fig_b2b("b2b_paper_B", "fig7d_structure_B", "Structure B, back to back", "fig_b2b_paper_B")
     fig_b2b("b2b_paper_A", "fig7c_structure_A", "Structure A, back to back", "fig_b2b_paper_A")
     fig_b2b("b2b_paper_B_smooth", "fig7d_structure_B", "Structure B with smooth edges, back to back",
