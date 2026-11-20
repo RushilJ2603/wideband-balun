@@ -31,7 +31,7 @@ zb = g(:, 1); w = g(:, 2); wb = g(:, 3);
 L = zb(end);
 h = p.h;
 ext = 10;
-air = 35;
+air = 25;
 unit = 1e-3;
 
 FDTD = InitFDTD('NrTS', 400000, 'EndCriteria', 1e-4);
@@ -82,18 +82,22 @@ CSX = AddBox(CSX, 'balun', 11, [-h/2 -we/2 h], [-r1 - r1/2 we/2 h]);
 % Mesh
 half = opts.board/2;
 fx = [-h/2 h/2 0 r1 -r1 2*r1 -2*r1 [1 -1]*half [1 -1]*(half + air)];
-mesh.x = mesh_axis(fx, [-half half 0.18; -h/2 h/2 h/6], 2.5, 1.3);
+mesh.x = mesh_axis(fx, [-half half 0.25; -h/2 h/2 h/6], 2.5, 1.3);
 fy = [0 [1 -1]*we/2 [1 -1]*p.w50/2 [1 -1]*wb(1)/2 [1 -1]*half [1 -1]*(half + air)];
-mesh.y = mesh_axis(fy, [-half half 0.18], 2.5, 1.3);
+mesh.y = mesh_axis(fy, [-half half 0.25], 2.5, 1.3);
 fz = [h 0 h/2 zz' -L-ext-air/2 h+air];
 mesh.z = mesh_axis(fz, [0 h h/6; -L-ext 0 0.45], 2.5, 1.3);
 CSX = DefineRectGrid(CSX, unit, mesh);
 
 % Microstrip port at the bottom of the balun, wave travelling in +z, field
 % from the +x strip to the -x conductor. Reference plane at the board edge.
+% The feed has a 50 ohm source resistance. Without it the two halves of the
+% antenna are floating conductors, and the small DC content of the
+% excitation leaves a static charge on them that decays only through the
+% substrate loss.
 CSX = AddMetal(CSX, 'PEC');
 [CSX, port] = AddMSLPort(CSX, 999, 1, 'PEC', [h/2 -p.w50/2 -L-ext], [-h/2 p.w50/2 -L], 'z', [-1 0 0], ...
-    'ExcitePort', true, 'FeedShift', 4, 'MeasPlaneShift', ext);
+    'ExcitePort', true, 'FeedShift', 2, 'MeasPlaneShift', ext, 'Feed_R', 50);
 
 % Near-field box for the far-field transform, a few cells inside the PML.
 nb_lo = [mesh.x(12) mesh.y(12) mesh.z(12)];
