@@ -30,7 +30,9 @@ The improved balun uses 60 of its 70 mm for a Klopfenstein taper (ripple 0.12, A
 
 ![Impedance profiles](results/figures/fig_profiles.png)
 
-The spiral antenna of the paper, fed through the balun, is simulated in `src/build_spiral.m`; see the report for its input reflection and beamwidths.
+The paper's spiral antenna (two arms, eight turns, 0.86 mm arms and gaps, 28.3 mm outer radius) was simulated on its own with a 188 Ω feed and joined to the full-wave two-port of each balun (`src/cascade_spiral.py`). With the published balun the antenna follows the paper's measured input match from 2 to 5 GHz and is below −10 dB on 85.6 % of 2.5 to 15 GHz; with the improved balun it is below −10 dB from 1.62 to 15 GHz. Its E-plane beamwidth agrees with Table III of the paper within 1.1° from 2 to 3 GHz.
+
+![Spiral antenna input match](results/figures/fig_spiral_s11.png)
 
 ## Reproducing
 
@@ -49,6 +51,10 @@ python3 export_fields.py <name>   # field maps
 python3 summarize.py              # results/summary.csv
 python3 plots.py                  # results/figures/
 ```
+
+The spiral antenna: `build_spiral('spiral_lumped', ..., struct('feed', 'lumped'))` in MATLAB, run openEMS, `post_spiral('spiral_lumped')`, run `nf2ff.exe nf2ff.xml` in the run folder, then `python3 far_field.py spiral_lumped`. The balun two-ports need `build_balun(..., struct('mode', 'single', 'excite', 2))` as well, and `python3 cascade_spiral.py paper_B improved` joins them.
+
+Windows runs processes started from a terminal without a window in efficiency mode, which slowed openEMS by a factor of four here; `src/no_throttle.ps1` turns that off for running openEMS processes.
 
 A uniform 50 Ω line with the same port and mesh settings (`check_msl.m`) gives a line impedance of 50.9 to 53.2 Ω and |S11| below −31.7 dB from 1 to 15 GHz.
 

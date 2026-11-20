@@ -261,8 +261,29 @@ text(s, 6.9, 4.2, 6.0, 3.0, [
 ], size=13)
 
 # 8. Spiral antenna
-s = new_slide("Validation: spiral antenna fed by the balun", "SPIRAL_SUBTITLE")
-SPIRAL_SLIDE = s
+hp = pd.read_csv(RES / "spiral_lumped_hpbw.csv")
+paper_hp = {2: (94.6, 81.8), 2.5: (93.5, 78.5), 3: (86.4, 78.3), 4: (73.3, 70.2), 5: (64.9, 67.1),
+            6: (61.0, 60.7), 10: (53.8, 47.3), 15: (42.6, 34.4)}
+s = new_slide("Validation: spiral antenna fed by the balun",
+              "Spiral and balun simulated full-wave, joined as networks: Γin = S11 + S12 S21 ΓL / (1 − S22 ΓL)")
+picture(s, "fig_spiral_s11", 0.4, 1.5, w=7.0)
+text(s, 0.5, 4.55, 6.9, 2.8, [
+    ("Spiral alone, 188 Ω feed: matched from 1.65 GHz (paper: 1.69 GHz from the arm size).", {"bullet": True}),
+    ("With the published balun: follows the measured curve from 2 to 5 GHz, including the 3.5 GHz dip; 85.6 % of 2.5 to 15 GHz below −10 dB, −8.0 dB at 5.4 to 6.3 GHz where the balun itself reflects.", {"bullet": True}),
+    ("The junction of balun and spiral is shown only in a photo; our full model of it reflected strongly, so it is not used.", {"bullet": True}),
+], size=12)
+rows = [["f (GHz)", "paper E / H", "ours E / H", "ours Eθ: E / H"]]
+for _, r in hp.iterrows():
+    pe = paper_hp[round(r.f_GHz, 1) if r.f_GHz != 2.5 else 2.5]
+    rows.append([f"{r.f_GHz:g}", f"{pe[0]:.0f}° / {pe[1]:.0f}°", f"{r.hpbw_E_deg:.0f}° / {r.hpbw_H_deg:.0f}°",
+                 f"{r.hpbw_E_theta_deg:.0f}° / {r.hpbw_H_theta_deg:.0f}°"])
+label(s, 7.7, 1.55, "Half-power beamwidth, Table III of [1]")
+table(s, 7.7, 1.9, 5.1, rows, widths=[0.9, 1.4, 1.4, 1.4], size=11, row_h=0.27)
+text(s, 7.7, 4.45, 5.1, 2.8, [
+    ("E-plane within 1.1° at 2 to 3 GHz; both planes narrow with frequency as in the paper up to 10 GHz.", {"bullet": True}),
+    ("Paper measured with a linear horn; our Eθ alone puts the H-plane within 0.5° to 6° up to 4 GHz.", {"bullet": True}),
+    ("15 GHz not resolved: active region radius about 3 mm, a dozen cells.", {"bullet": True}),
+], size=12)
 
 # 9. Summary of validation
 s = new_slide("Validation summary", "Each result of the paper and what our simulation gives")
@@ -276,8 +297,8 @@ table(s, 0.5, 1.6, 12.3, [
     ["phase of strip currents", "180°", f"180° ± {B.dphi_max_p:.1f}°", "reproduced"],
     ["surface current at 2.5 GHz", "symmetric", "symmetric", "reproduced"],
     ["longer balanced section", "no change", "no change in loss", "reproduced"],
-    ["spiral input match", "SPIRAL_A", "SPIRAL_B", "SPIRAL_C"],
-    ["spiral beamwidths", "Table III", "SPIRAL_D", "SPIRAL_E"],
+    ["spiral input match", "2.5 to 15 GHz, measured", "85.6 % of the band; −8.0 dB at 5.4 to 6.3 GHz", "reproduced except balun peaks"],
+    ["spiral beamwidths", "Table III", "E-plane within 1.1° at 2 to 3 GHz; H wider", "partly reproduced"],
 ], widths=[2.8, 2.4, 4.6, 2.5], size=12)
 
 # 10. Improved design
@@ -313,10 +334,10 @@ table(s, 7.2, 1.6, 5.6, [
     ["common mode below differential", f"{B.cmrr_min_p:.1f} dB", f"{I.cmrr_min_p:.1f} dB"],
     ["board per balun", "70 × 18 mm", "70 × 18 mm"],
 ], widths=[2.8, 1.4, 1.4], size=12)
-text(s, 7.2, 5.0, 5.6, 2.2, [
+text(s, 7.2, 5.0, 5.6, 2.3, [
     (f"Back to back {I.lo_GHz:.2f} to beyond 15 GHz: 12.8 to 1, against 8.6 to 1 in the paper.", {"bullet": True}),
     (f"One balun into 188 Ω from {SI.lo_GHz:.2f} GHz: the whole L band.", {"bullet": True}),
-    ("The 5 to 7.5 GHz peaks are gone.", {"bullet": True}),
+    ("The 5 to 7.5 GHz peaks are gone; the spiral fed through it is below −10 dB on all of 1.62 to 15 GHz (85.6 % of 2.5 to 15 GHz with the published balun).", {"bullet": True}),
 ], size=13)
 
 # 12. Conclusion
@@ -324,11 +345,17 @@ s = new_slide("Conclusion")
 text(s, 0.5, 1.7, 12.2, 5.2, [
     ("The balun of [1] was rebuilt in openEMS and each published result checked: current balance, field distribution, insertion loss, the balanced section test and the back-to-back response agree.", {"bullet": True, "space": 12}),
     ("Two reflection peaks near 5.8 and 6.9 GHz come from two rows of the paper's dimension table; a line model built from our cross-section solver predicts both.", {"bullet": True, "space": 12}),
-    ("SPIRAL_CONCLUSION", {"bullet": True, "space": 12}),
-    (f"The improved taper keeps the same 70 mm × 18 mm board and covers {I.lo_GHz:.2f} GHz to beyond 15 GHz back to back and {SI.lo_GHz:.2f} GHz upward as a single balun, with better balance and lower loss: L, S, C and X bands.", {"bullet": True, "space": 12}),
+    ("The spiral antenna, simulated on its own and joined to the balun's two-port, follows the measured input match from 2 to 5 GHz and the low-frequency beamwidths.", {"bullet": True, "space": 12}),
+    (f"The improved taper keeps the same 70 mm × 18 mm board and covers {I.lo_GHz:.2f} GHz to beyond 15 GHz back to back and {SI.lo_GHz:.2f} GHz upward as a single balun, with better balance and lower loss: L, S, C and X bands. The spiral fed through it is matched from 1.62 to 15 GHz.", {"bullet": True, "space": 12}),
     ("All results are simulations; fabrication and measurement would be the next step.", {"bullet": True, "space": 12}),
 ], size=17)
 
+cp = prs.core_properties
+cp.title = "Wideband microstrip to parallel strip balun for L, S, C and X band applications"
+cp.author = "Rushil Jain; Jainam Sonigara"
+cp.last_modified_by = "Rushil Jain"
+cp.comments = ""
+cp.subject = "EC301 RF Components and Circuits, course project 12"
 out = HERE / "Wideband_Balun.pptx"
 prs.save(out)
 print("wrote", out.name, len(prs.slides._sldIdLst), "slides")

@@ -9,7 +9,7 @@ date: "November 2026"
 
 # Abstract
 
-A balun joins an unbalanced line such as a coaxial cable or microstrip to a balanced load such as a dipole or a spiral antenna. This project reproduces the tapered microstrip to parallel strip balun of Vinayagamoorthy, Coetzee and Jayalath [1] in the open-source FDTD solver openEMS, and then redesigns its taper so that it covers the whole L band in the same board area. The balun is printed on RT/duroid 5880 ($\varepsilon_r = 2.2$, $h = 1.5748$ mm) and transforms 50 Ω to 188 Ω over 70 mm. We checked every dimension of the paper with a two-dimensional cross-section solver written for this project, simulated the back-to-back pair, the current balance, the field distribution, the effect of the balanced line length and the spiral antenna the paper feeds with the balun, and compared each with the published figures. Most published results are reproduced. The published dimensions give two reflection peaks near 5.8 GHz and 6.9 GHz that the paper does not show; we trace them to two rows of the paper's dimension table whose widths do not give the impedance the table states. The improved design follows a Klopfenstein impedance profile realised point by point with the cross-section solver. In the back-to-back test it keeps $|S_{11}|$ below $-10$ dB from 1.17 GHz to beyond 15 GHz, against 1.75 GHz in the paper, and a single balun into 188 Ω is matched from 0.95 GHz.
+A balun joins an unbalanced line such as a coaxial cable or microstrip to a balanced load such as a dipole or a spiral antenna. This project reproduces the tapered microstrip to parallel strip balun of Vinayagamoorthy, Coetzee and Jayalath [1] in the open-source FDTD solver openEMS, and then redesigns its taper so that it covers the whole L band in the same board area. The balun is printed on RT/duroid 5880 ($\varepsilon_r = 2.2$, $h = 1.5748$ mm) and transforms 50 Ω to 188 Ω over 70 mm. We checked every dimension of the paper with a two-dimensional cross-section solver written for this project, simulated the back-to-back pair, the current balance, the field distribution, the effect of the balanced line length and the spiral antenna the paper feeds with the balun, and compared each with the published figures. Most published results are reproduced. The published dimensions give two reflection peaks near 5.8 GHz and 6.9 GHz that the paper does not show; we trace them to two rows of the paper's dimension table whose widths do not give the impedance the table states. The improved design follows a Klopfenstein impedance profile realised point by point with the cross-section solver. In the back-to-back test it keeps $|S_{11}|$ below $-10$ dB from 1.17 GHz to beyond 15 GHz, against 1.75 GHz in the paper, and a single balun into 188 Ω is matched from 0.95 GHz. Fed through the improved balun, the paper's spiral antenna is matched from 1.62 GHz to 15 GHz.
 
 # Introduction
 
@@ -227,11 +227,38 @@ The paper reports that the S-parameters do not change when the balanced section 
 
 ## Spiral antenna fed by the balun
 
-SPIRAL_SECTION
+In [1] the balun feeds a two-arm Archimedean spiral on a 60 mm × 60 mm board of the same substrate. The arm width, the gap between arms and the inner radius are all 0.86 mm, the outer radius is 28.3 mm and each arm has eight turns. The paper reports a measured return loss better than 10 dB from 2.5 GHz to 15 GHz at the 50 Ω connector (Fig. 10), the pattern at 10 GHz (Fig. 11) and the half-power beamwidths in two planes from 2 GHz to 15 GHz (Table III).
+
+We first built a model of the complete antenna, with the balun board standing under the spiral and its two strips passing through the spiral board to the arm ends. That model showed a reflection of about $-5$ dB at the junction, repeating every 1.75 GHz, which is the round trip along the balun. The paper shows this junction only in a photograph, so our version of it is a guess, and we did not use that model further. Instead we simulated the spiral on its own, fed by a 188 Ω lumped port across the gap between the two arm ends (2.8 million cells, 0.25 mm mesh across the spiral), and simulated each balun as a two-port with a 50 Ω port at the unbalanced end and a 188 Ω port at the balanced end, driving each port in turn. The input reflection of the antenna at its connector then follows from
+
+$$ \Gamma_{\text{in}} = S_{11} + \frac{S_{12} S_{21} \Gamma_L}{1 - S_{22} \Gamma_L}, $$
+
+where $\Gamma_L$ is the reflection of the spiral referred to 188 Ω. The two balun runs give $|S_{12}|$ and $|S_{21}|$ within 0.26 dB of each other from 2 GHz to 15 GHz, as reciprocity requires.
+
+On its own the spiral is matched to 188 Ω: $|S_{11}|$ is below $-10$ dB from 1.65 GHz upward and below $-12$ dB from 2 GHz to 14 GHz, with an input resistance of 140 Ω to 200 Ω. The lower limit agrees with the 1.69 GHz at which the paper puts the largest arm circumference at one wavelength. The figure below compares the antenna fed by the published balun with Fig. 10 of [1]. From 2 GHz to 5 GHz it follows the measured curve closely, including the deep minimum near 3.5 GHz. It is below $-10$ dB on 85.6 per cent of the 2.5 GHz to 15 GHz band, and rises to $-8.0$ dB between 5.42 GHz and 6.32 GHz, the band of the balun's own reflection peaks, and to $-9.0$ dB between 13.28 GHz and 14.12 GHz.
+
+![Input $|S_{11}|$ of the spiral antenna at the 50 Ω connector with the published and with the improved balun, the spiral alone referred to 188 Ω, and the simulated and measured curves of Fig. 10 of [1].](../results/figures/fig_spiral_s11.png)
+
+Table: Table 6. Half-power beamwidth of the spiral in the xz plane (E) and the yz plane (H): Table III of [1], our total field, and our $E_\theta$ component alone.
+
+| $f$ (GHz) | [1], E | [1], H | total, E | total, H | $E_\theta$, E | $E_\theta$, H |
+|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 94.6° | 81.8° | 95.6° | 94.9° | 81.9° | 82.3° |
+| 2.5 | 93.5° | 78.5° | 92.8° | 93.2° | 80.8° | 81.2° |
+| 3 | 86.4° | 78.3° | 87.5° | 87.6° | 78.7° | 79.2° |
+| 4 | 73.3° | 70.2° | 79.3° | 78.6° | 75.7° | 76.0° |
+| 5 | 64.9° | 67.1° | 71.3° | 75.0° | 72.5° | 76.8° |
+| 6 | 61.0° | 60.7° | 68.2° | 71.3° | 71.1° | 73.3° |
+| 10 | 53.8° | 47.3° | 62.6° | 93.3° | 67.4° | 102.1° |
+| 15 | 42.6° | 34.4° | 109.9° | 74.8° | 114.5° | 67.4° |
+
+With the total field, our xz-plane beamwidth agrees with the paper's E-plane within 1.1° from 2 GHz to 3 GHz. From 4 GHz to 10 GHz both narrow with frequency at about the same rate, ours staying 6° to 9° wider. Our H-plane is 9° to 15° wider than the paper's below 4 GHz. The paper measured with a linearly polarised horn and does not say which field component, so the table also gives the beamwidth of $E_\theta$ alone, whose H-plane values are within 0.5° to 6° of the paper up to 4 GHz. At 10 GHz in the H-plane and at 15 GHz in both planes the model departs from the paper. At 15 GHz the radiating part of the spiral has a radius of about 3 mm, roughly a dozen mesh cells, which the 0.25 mm mesh does not resolve well, so we do not count these values as reproduced. The pattern at 10 GHz has its maxima along the spiral axis on both sides and minima in the plane of the spiral, as in Fig. 11 of [1]. The peak directivity rises from 3.6 dBi at 2 GHz to 5.8 dBi at 6 GHz to 10 GHz.
+
+![Normalised far field of the spiral at 10 GHz in the xz and yz planes.](../results/figures/fig_spiral_pattern_10GHz.png)
 
 ## Summary of the validation
 
-Table: Table 6. Results of [1] and the corresponding results of this project.
+Table: Table 7. Results of [1] and the corresponding results of this project.
 
 | result in [1] | value in [1] | this project | outcome |
 |---|---|---|---|
@@ -243,8 +270,8 @@ Table: Table 6. Results of [1] and the corresponding results of this project.
 | phase difference of strip currents | 180° | 180° ± 13.8°, common mode at least 17.6 dB down | reproduced |
 | surface current at 2.5 GHz | symmetric | symmetric | reproduced |
 | longer balanced section | no change | no change in loss; $\lvert S_{11}\rvert$ ripple moves | reproduced |
-| spiral antenna | SPIRAL_ROW_1 | SPIRAL_ROW_2 | SPIRAL_ROW_3 |
-| beamwidths, Table III of [1] | SPIRAL_ROW_4 | SPIRAL_ROW_5 | SPIRAL_ROW_6 |
+| spiral antenna, $\lvert S_{11}\rvert < -10$ dB | 2.5 to 15 GHz, measured | 85.6 % of the band; peaks of −8.0 and −9.0 dB at 5.42 to 6.32 and 13.28 to 14.12 GHz; measured curve followed from 2 to 5 GHz | reproduced except the balun's peak band |
+| spiral beamwidths | Table III, 2 to 15 GHz | E-plane within 1.1° at 2 to 3 GHz, 6° to 9° wider to 10 GHz; H-plane 9° to 15° wider; 15 GHz not resolved | partly reproduced |
 
 # Improved design
 
@@ -262,9 +289,9 @@ $$ r(u) = \frac{w'}{w} = 1 + 2.75\,(1 - u)^2, \qquad u = \frac{z - 5\ \text{mm}}
 
 At each of 121 points along the taper the top width $w$ is solved so that the cross-section with $w' = r w$ has the Klopfenstein impedance at that point. The squared form makes the ground narrow fastest near the feed, where the ground is much wider than the strip and changes in its width hardly affect the impedance. Every point of the result has the intended impedance, the top strip narrows monotonically, the ground is never narrower than the strip, and the narrowest conductor is the 0.786 mm parallel strip of 188 Ω.
 
-The taper length and the ripple $\Gamma_m$ were chosen with the transmission-line model. Table 7 lists part of that sweep. A longer taper always lowers the band edge. A larger ripple lowers it as well, at the cost of a higher reflection in the band. We chose a 60 mm taper with $\Gamma_m = 0.12$ ($-18.4$ dB, $A = 2.393$): the model predicts a back-to-back edge of 1.25 GHz and a single-balun edge of 1.05 GHz.
+The taper length and the ripple $\Gamma_m$ were chosen with the transmission-line model. Table 8 lists part of that sweep. A longer taper always lowers the band edge. A larger ripple lowers it as well, at the cost of a higher reflection in the band. We chose a 60 mm taper with $\Gamma_m = 0.12$ ($-18.4$ dB, $A = 2.393$): the model predicts a back-to-back edge of 1.25 GHz and a single-balun edge of 1.05 GHz.
 
-Table: Table 7. Transmission-line model of Klopfenstein tapers of different length and ripple: lowest frequency from which $|S_{11}|$ stays below $-10$ dB up to 15 GHz.
+Table: Table 8. Transmission-line model of Klopfenstein tapers of different length and ripple: lowest frequency from which $|S_{11}|$ stays below $-10$ dB up to 15 GHz.
 
 | taper length | $\Gamma_m$ | back to back | one balun into 188 Ω |
 |---:|---:|---:|---:|
@@ -275,7 +302,7 @@ Table: Table 7. Transmission-line model of Klopfenstein tapers of different leng
 | 60 mm | 0.12 | 1.25 GHz | 1.05 GHz |
 | 60 mm | 0.15 | 1.20 GHz | 1.00 GHz |
 
-Table: Table 8. Dimensions of the improved balun at selected points. The full outline, 125 points, is in the project files.
+Table: Table 9. Dimensions of the improved balun at selected points. The full outline, 125 points, is in the project files.
 
 | $z$ (mm) | $w$ (mm) | $w'$ (mm) | impedance (Ω) |
 |---:|---:|---:|---:|
@@ -295,11 +322,11 @@ Table: Table 8. Dimensions of the improved balun at selected points. The full ou
 
 ## Results
 
-The improved design was simulated in openEMS with exactly the settings used for the paper's structures, both back to back and as a single balun closed by a 188 Ω port, which stands for the spiral. The figure below compares it with the published design and with the paper's own CST result, and Table 9 lists the figures of merit.
+The improved design was simulated in openEMS with exactly the settings used for the paper's structures, both back to back and as a single balun closed by a 188 Ω port, which stands for the spiral. The figure below compares it with the published design and with the paper's own CST result, and Table 10 lists the figures of merit.
 
 ![$|S_{11}|$ of the published design and of the improved design. Top: back to back, with the CST result of [1]. Bottom: one balun into 188 Ω. The shaded strip is the L band.](../results/figures/fig_compare.png)
 
-Table: Table 9. Published design and improved design, both simulated in openEMS with the same settings, and the band reported in [1].
+Table: Table 10. Published design and improved design, both simulated in openEMS with the same settings, and the band reported in [1].
 
 | quantity | [1], reported | published dimensions | improved |
 |---|---|---|---|
@@ -313,6 +340,7 @@ Table: Table 9. Published design and improved design, both simulated in openEMS 
 | amplitude difference of strip currents | not reported | 1.74 dB | 1.27 dB |
 | common mode below differential mode | not reported | 17.6 dB | 22.0 dB |
 | largest share of power lost, 1.75 to 15 GHz | not reported | 20.7 % | 11.8 % |
+| spiral antenna, share of 2.5 to 15 GHz below $-10$ dB | all (measured) | 85.6 % | 100 % |
 | board size per balun | 70 mm × 18 mm | 70 mm × 18 mm | 70 mm × 18 mm |
 
 Back to back, the improved pair keeps $|S_{11}|$ below $-10$ dB from 1.17 GHz to the top of the simulated range, a bandwidth ratio of 12.8 to 1 against 8.6 to 1 in [1]. The reflection peaks of the published design between 5 GHz and 7.5 GHz are gone, the worst reflection between 1.75 GHz and 15 GHz is $-13.9$ dB, and the insertion loss of the pair is at most 0.72 dB in that band. A single improved balun into 188 Ω is matched from 0.95 GHz, so it covers the whole L band, and its worst reflection from 2 GHz to 12 GHz is $-18.0$ dB against $-12.1$ dB for the published dimensions. The back-to-back edge stays at 1.17 GHz because, as Section 3.4 explains, the pair can reflect up to twice as much as one balun.
@@ -323,17 +351,19 @@ The current balance also improves. The phase difference stays within 8.4° of 18
 
 ![Magnetic field magnitude just above the top conductor and just below the bottom conductor of the improved design back to back at 10 GHz.](../results/figures/fig_fields_b2b_improved_10GHz.png)
 
-IMPROVED_SPIRAL
+## Spiral antenna with the improved balun
+
+Joined in the same way to the improved balun, the spiral antenna of [1] has the input reflection drawn in blue in the spiral figure of Section 5.8. It stays below $-10$ dB over the whole band from 1.62 GHz to 15 GHz, with a worst value of $-11.1$ dB above 2.5 GHz, against 85.6 per cent of that band and a worst value of $-8.0$ dB with the published balun. The lower limit is now set by the size of the spiral, which on its own is matched from 1.65 GHz, and no longer by the balun.
 
 ## Limitations
 
-All results in this report are simulations. The paper's measurements include SMA connectors, soldering and the alignment of the two faces of the board, which the paper itself names as the cause of differences between its simulated and measured results; none of these are modelled here. The loss tangent, the copper thickness and the board width are data-sheet or assumed values, and the outline of structure A is inferred from a photograph. The improved design has narrower features than the published one only at the balanced end, where its 0.786 mm strips are 0.1 mm narrower than the published 0.88 mm, which is within ordinary PCB tolerances.
+All results in this report are simulations. The paper's measurements include SMA connectors, soldering and the alignment of the two faces of the board, which the paper itself names as the cause of differences between its simulated and measured results; none of these are modelled here. The loss tangent, the copper thickness and the board width are data-sheet or assumed values, and the outline of structure A is inferred from a photograph. The junction between the balun and the spiral is not modelled: the antenna results join two separate full-wave models as networks, which leaves out any coupling between the balun board and the spiral. The improved design has narrower features than the published one only at the balanced end, where its 0.786 mm strips are 0.1 mm narrower than the published 0.88 mm, which is within ordinary PCB tolerances.
 
 # Conclusion
 
-We reproduced the wideband balun of [1] with the openEMS FDTD solver and a cross-section solver written for the project, and checked each of the paper's results. The current balance, the field distribution, the insertion loss, the effect of the balanced line length and the overall back-to-back response agree with the paper. Two reflection peaks near 5.8 GHz and 6.9 GHz, absent from the paper, come from two rows of the paper's dimension table that do not give the stated impedance; a transmission-line model built from the cross-section solver predicts both peaks. SPIRAL_CONCLUSION
+We reproduced the wideband balun of [1] with the openEMS FDTD solver and a cross-section solver written for the project, and checked each of the paper's results. The current balance, the field distribution, the insertion loss, the effect of the balanced line length and the overall back-to-back response agree with the paper. Two reflection peaks near 5.8 GHz and 6.9 GHz, absent from the paper, come from two rows of the paper's dimension table that do not give the stated impedance; a transmission-line model built from the cross-section solver predicts both peaks. The spiral antenna, simulated on its own and joined to the full-wave two-port of the balun, follows the measured input match of [1] from 2 GHz to 5 GHz and its beamwidths at low frequency.
 
-The improved balun uses the same board area but spends 60 mm of it on a Klopfenstein taper whose every cross-section is solved for the intended impedance. In simulation it keeps the back-to-back return loss above 10 dB from 1.17 GHz to beyond 15 GHz, matches a single 188 Ω load from 0.95 GHz, removes the reflection peaks of the published design and improves the current balance. It covers the L, S, C and X bands, which is what the project title asks for.
+The improved balun uses the same board area but spends 60 mm of it on a Klopfenstein taper whose every cross-section is solved for the intended impedance. In simulation it keeps the back-to-back return loss above 10 dB from 1.17 GHz to beyond 15 GHz, matches a single 188 Ω load from 0.95 GHz, removes the reflection peaks of the published design and improves the current balance. The paper's spiral antenna fed through it is matched from 1.62 GHz to 15 GHz. It covers the L, S, C and X bands, which is what the project title asks for.
 
 # References
 
