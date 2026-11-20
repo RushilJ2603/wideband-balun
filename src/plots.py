@@ -327,7 +327,7 @@ def fig_long_short(out):
 
 # Spiral antenna fed by the balun: input reflection against Fig. 10 of the
 # paper.
-def fig_spiral_s11(names, labels, out):
+def fig_spiral_s11(names, labels, out, alone=None):
     ds = [load_sp(n) for n in names]
     if any(d is None for d in ds):
         return
@@ -338,11 +338,14 @@ def fig_spiral_s11(names, labels, out):
         ax.plot(p.f_GHz, p.paper_meas_s11_dB, color=GREY, lw=0.9, label="paper, measured")
     for d, lab, col in zip(ds, labels, (ORANGE, BLUE)):
         ax.plot(d.f_GHz, db(d.s11), color=col, label=lab)
+    if alone is not None and load_sp(alone) is not None:
+        d = load_sp(alone)
+        ax.plot(d.f_GHz, db(d.s11), color=AQUA, lw=1.0, label="spiral alone, re 188 Ω")
     ax.axhline(-10, color=MUTED, lw=0.7, ls=":")
     ax.set_xlim(1, 15)
     ax.set_ylim(-40, 0)
     ax.set_xlabel("frequency (GHz)")
-    ax.set_ylabel("|S11| at the 50 Ω input (dB)")
+    ax.set_ylabel("|S11| (dB)")
     ax.legend(fontsize=7, loc="lower right", ncol=2)
     fig.tight_layout()
     save(fig, out)
@@ -380,8 +383,10 @@ if __name__ == "__main__":
     fig_profiles("fig_profiles")
     fig_linemodel("fig_linemodel")
     fig_long_short("fig_long_short")
-    fig_spiral_s11(["spiral_paper_B"], ["published balun, openEMS"], "fig_spiral_s11")
-    fig_spiral_pattern("spiral_paper_B", "fig_spiral_pattern_10GHz")
+    fig_spiral_s11(["spiral_paper_B_cascade", "spiral_improved_cascade"],
+                   ["spiral with published balun", "spiral with improved balun"], "fig_spiral_s11", alone="spiral_lumped")
+    fig_spiral_pattern("spiral_lumped", "fig_spiral_pattern_10GHz")
+    fig_spiral_pattern("spiral_lumped", "fig_spiral_pattern_3GHz", f_ghz=3.0)
     fig_b2b("b2b_paper_B", "fig7d_structure_B", "Structure B, back to back", "fig_b2b_paper_B")
     fig_b2b("b2b_paper_A", "fig7c_structure_A", "Structure A, back to back", "fig_b2b_paper_A")
     fig_b2b("b2b_paper_B_smooth", "fig7d_structure_B", "Structure B with smooth edges, back to back",
