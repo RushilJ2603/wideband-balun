@@ -1,0 +1,15 @@
+
+# Python
+__pycache__/
+*.py[cod]
+
+# MATLAB
+*.asv
+*.m~
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

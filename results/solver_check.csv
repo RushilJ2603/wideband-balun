@@ -1,0 +1,5 @@
+case,Z_solver,Z_closed_form,eeff_solver,eeff_closed_form
+microstrip w = 4.8 mm,50.11,50.42,1.883,1.88
+microstrip w = 2.6 mm,72.84,73.45,1.818,1.816
+microstrip w = 1.2 mm,106.19,107.33,1.757,1.753
+parallel strip w = 0.88 mm,178.08,180.19,1.784,1.781
