@@ -100,9 +100,11 @@ CSX = AddMetal(CSX, 'PEC');
     'ExcitePort', true, 'FeedShift', 2, 'MeasPlaneShift', ext, 'Feed_R', 50);
 
 % Near-field box for the far-field transform, a few cells inside the PML.
+% The box fields are kept in the frequency domain at the pattern
+% frequencies only, which avoids writing the full time signal to disk.
 nb_lo = [mesh.x(12) mesh.y(12) mesh.z(12)];
 nb_hi = [mesh.x(end-11) mesh.y(end-11) mesh.z(end-11)];
-[CSX, nf2ff] = CreateNF2FFBox(CSX, 'nf2ff', nb_lo, nb_hi);
+[CSX, nf2ff] = CreateNF2FFBox(CSX, 'nf2ff', nb_lo, nb_hi, 'Frequency', opts.nf2ff_f);
 
 sim = sim_dir(name);
 WriteOpenEMS(fullfile(sim, 'model.xml'), FDTD, CSX);
