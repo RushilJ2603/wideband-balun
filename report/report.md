@@ -9,7 +9,7 @@ date: "November 2026"
 
 # Abstract
 
-This project reproduces the tapered microstrip to parallel strip balun of Vinayagamoorthy, Coetzee and Jayalath [1] in the FDTD solver openEMS and then improves it. The balun is printed on RT/duroid 5880 ($\varepsilon_r = 2.2$, $h = 1.5748$ mm) and transforms 50 Ω to 188 Ω over 70 mm. Built to the impedance profile of the paper, our model keeps the back-to-back $|S_{11}|$ below $-10$ dB from 1.77 GHz to 15 GHz, against 1.75 GHz to 15 GHz in the paper, and reproduces the paper's current balance, surface current, insertion loss, structure A comparison and balanced section test. Fed through it, the paper's spiral antenna is matched from 1.59 GHz to 15 GHz, against 2.5 GHz to 15 GHz measured in [1]. A cross-section solver written for the project shows that two rows of the paper's dimension table do not give the impedance the table states. The improved balun uses a Klopfenstein taper whose every cross-section is solved for its impedance. On the same board it is matched back to back from 1.17 GHz and as a single balun from 0.95 GHz, so it covers the L, S, C and X bands, with better current balance and lower loss.
+This project reproduces the tapered microstrip to parallel strip balun of Vinayagamoorthy, Coetzee and Jayalath [1] in the FDTD solver openEMS and then improves it. The balun is printed on RT/duroid 5880 ($\varepsilon_r = 2.2$, $h = 1.5748$ mm) and transforms 50 Ω to 188 Ω over 70 mm. Built to the impedance profile of the paper, our model keeps the back-to-back $|S_{11}|$ below $-10$ dB from 1.78 GHz to 15 GHz, against 1.75 GHz to 15 GHz in the paper, and reproduces the paper's current balance, surface current, insertion loss, structure A comparison and balanced section test. The paper's spiral antenna, modelled together with the balun, is matched from 1.75 GHz to 15 GHz apart from a rise to $-9.4$ dB near 13.8 GHz (2.5 GHz to 15 GHz measured in [1]); its 10 GHz pattern follows the simulated pattern of the paper, and its E-plane beamwidth is within 3.7° of the paper's from 2 GHz to 6 GHz. A cross-section solver written for the project shows that two rows of the paper's dimension table do not give the impedance the table states. The improved balun uses a Klopfenstein taper whose every cross-section is solved for its impedance. On the same board it is matched back to back from 1.17 GHz and as a single balun from 0.95 GHz, so it covers the L, S, C and X bands, with better current balance and lower loss.
 
 # Introduction
 
@@ -46,7 +46,7 @@ Table: Table 2. Dimensions of structure B, Table I of [1]. $z$ is the distance f
 | 50 | 0.88 | 0.88 | 188 |
 | 70 | 0.88 | 0.88 | 188 |
 
-The stated impedances follow $Z(z) = 50\,(188/50)^{z/50}$ Ω exactly. Quantities the paper does not give were fixed as follows for all runs: loss tangent 0.0009 and 35 µm copper from the substrate data sheet [7], a 30 mm wide board, the two baluns of the back-to-back test joined at $z = 70$ mm, and microstrip ports at the board edges in place of the SMA connectors.
+The stated impedances follow $Z(z) = 50\,(188/50)^{z/50}$ Ω exactly. Quantities the paper does not give were fixed as follows for all runs: loss tangent 0.0009 and 35 µm copper from the substrate data sheet [7], an 18 mm wide board, the two baluns of the back-to-back test joined at $z = 70$ mm, and microstrip ports at the board edges in place of the SMA connectors.
 
 # Theory
 
@@ -105,7 +105,8 @@ Table: Table 3. Simulation settings.
 | boundaries | 8-cell perfectly matched layer [9], 20 mm of air |
 | ports | microstrip ports at the board edges; 188 Ω lumped port for a single balun |
 | stopping rule | field energy 50 dB below its peak |
-| model size | 1.5 to 3.2 million cells, 5 to 12 minutes per run on 16 threads |
+| model size | 1.8 to 3.1 million cells, 3 to 10 minutes per run on 16 threads |
+| antenna model | spiral and balun together, 0.1 mm cells at the centre of the spiral, 40 mm of air, 50 Ω lumped port at the balun edge, 20 million cells, 1.7 hours per run |
 
 ## Cross-section solver and line model
 
@@ -152,54 +153,58 @@ We therefore built structure B to the impedances the table states: from $z = 5$ 
 
 ![Structure B back to back: openEMS result of the paper design, openEMS result with the widths as printed in Table I, and the simulated (CST) and measured $|S_{11}|$ of Fig. 7(d) of [1].](../results/figures/fig_b2b_paper_B.png)
 
-The paper design keeps $|S_{11}|$ below $-10$ dB from 1.77 GHz to 15 GHz, against 1.75 GHz to 15 GHz in [1], and follows the shape of the paper's CST curve; above 2 GHz the highest ripple peak is $-11.0$ dB, at 3.15 GHz. $|S_{21}|$ is never below $-0.98$ dB from 1.75 GHz to 15 GHz, inside the 3 dB of [1].
+The paper design keeps $|S_{11}|$ below $-10$ dB from 1.78 GHz to 15 GHz, against 1.75 GHz to 15 GHz in [1], and follows the shape of the paper's CST curve; above 2 GHz the highest ripple peak is $-11.0$ dB, at 3.15 GHz. $|S_{21}|$ is never below $-0.98$ dB from 1.75 GHz to 15 GHz, inside the 3 dB of [1]. With every cell 1.5 times smaller (6.7 million cells) the band starts at 1.77 GHz, $|S_{21}|$ changes by at most 0.12 dB and the phase error by 0.15°, so the mesh is fine enough.
 
-With the widths exactly as printed, two extra peaks appear, $-6.7$ dB at 5.42 GHz to 6.10 GHz and $-9.1$ dB at 6.78 GHz to 7.10 GHz. The transmission-line model built from the same cross-sections predicts both (figure below). They come from the two inconsistent rows: the impedance rises quickly near $z = 30$ mm and near $z = 45$ mm, and the two rises, 18 mm apart, reflect in phase near $c / (2 \times 18\ \text{mm} \times \sqrt{1.8}) \approx 6.2$ GHz.
+With the widths exactly as printed, two extra peaks appear, $-6.7$ dB at 5.42 GHz to 6.10 GHz and $-9.0$ dB at 6.78 GHz to 7.13 GHz. The transmission-line model built from the same cross-sections predicts both (figure below). They come from the two inconsistent rows: the impedance rises quickly near $z = 30$ mm and near $z = 45$ mm, and the two rises, 18 mm apart, reflect in phase near $c / (2 \times 18\ \text{mm} \times \sqrt{1.8}) \approx 6.2$ GHz.
 
 ![Back-to-back $|S_{11}|$ with the widths as printed in Table I, from the transmission-line model and from openEMS.](../results/figures/fig_linemodel.png)
 
 ## Structure A
 
-Structure A has the same top strip over a ground that narrows linearly from 18 mm to 0.786 mm, as in the photograph of Fig. 7(b) of [1]. Its $|S_{11}|$ rises to $-6.9$ dB between 2.88 GHz and 3.55 GHz and to $-9.6$ dB between 5.55 GHz and 5.80 GHz, so it meets the $-10$ dB limit on 92.7 per cent of 1.75 GHz to 15 GHz against 99.8 per cent for structure B. As in [1], structure B is the better design, and the first peak of structure A is at the frequency of the first peak in Fig. 7(c) of [1].
+Structure A has the same top strip over a ground that narrows linearly from 18 mm to 0.786 mm, as in the photograph of Fig. 7(b) of [1]. Its $|S_{11}|$ rises to $-6.9$ dB between 2.88 GHz and 3.55 GHz and to $-9.6$ dB between 5.55 GHz and 5.80 GHz, so it meets the $-10$ dB limit on 92.7 per cent of 1.75 GHz to 15 GHz against 99.6 per cent for structure B. As in [1], structure B is the better design, and the first peak of structure A is at the frequency of the first peak in Fig. 7(c) of [1].
 
 ![Structure A back to back: openEMS result and the simulated and measured $|S_{11}|$ of Fig. 7(c) of [1].](../results/figures/fig_b2b_paper_A.png)
 
 ## Current balance and surface current
 
-From 1.75 GHz to 15 GHz the currents in the two strips of the balanced section stay within 11.9° of 180° and within 1.60 dB of each other, and the common-mode current $(I_{\text{top}} + I_{\text{bot}})/2$ is at least 19.2 dB below the differential current; Fig. 5 of [1] shows 180°. At 2.5 GHz the surface current is symmetric about the centre line (figure below), as in Fig. 6 of [1]: on the wide ground it flows under the strip, and as the ground narrows it moves to the edges until both faces carry the same distribution.
+From 1.75 GHz to 15 GHz the currents in the two strips of the balanced section stay within 8.8° of 180° and within 1.34 dB of each other, and the common-mode current $(I_{\text{top}} + I_{\text{bot}})/2$ is at least 21.8 dB below the differential current; Fig. 5 of [1] shows 180°. At 2.5 GHz the surface current is symmetric about the centre line (figure below), as in Fig. 6 of [1]: on the wide ground it flows under the strip, and as the ground narrows it moves to the edges until both faces carry the same distribution.
 
 ![Magnetic field just above the top conductor and just below the bottom conductor of structure B back to back at 2.5 GHz, which follows the surface current.](../results/figures/fig_fields_b2b_paper_B.png)
 
 ## Length of the balanced section
 
-[1] reports that the response does not change when the parallel strip between the baluns is lengthened. We simulated the paper design with 40 mm and 4 mm of parallel strip between the two baluns. Both are matched across the band: $|S_{11}|$ stays below $-10$ dB from 1.77 GHz and from 1.56 GHz to 15 GHz. $|S_{21}|$ differs by at most 0.69 dB, and $|S_{11}|^2 + |S_{21}|^2$, the power that is neither radiated nor dissipated, agrees within 0.5 dB; above 10 GHz the long version is 0.13 dB lower on average, the loss of the extra 36 mm of line. A longer balanced section adds no radiation of its own, as [1] reports.
+[1] reports that the response does not change when the parallel strip between the baluns is lengthened. We simulated the paper design with 40 mm and 4 mm of parallel strip between the two baluns. Both are matched across the band: $|S_{11}|$ stays below $-10$ dB from 1.78 GHz and from 1.56 GHz to 15 GHz. $|S_{21}|$ differs by at most 0.69 dB, and $|S_{11}|^2 + |S_{21}|^2$, the power that is neither radiated nor dissipated, agrees within 0.43 dB; above 10 GHz the long version is 0.11 dB lower on average, the loss of the extra 36 mm of line. A longer balanced section adds no radiation of its own, as [1] reports.
 
 ![Balanced section of 40 mm and 4 mm: $|S_{21}|$ and $|S_{11}|^2 + |S_{21}|^2$.](../results/figures/fig_long_short.png)
 
 ## Spiral antenna fed by the balun
 
-The spiral of [1] has two arms of eight turns on a 60 mm × 60 mm board of the same substrate, with arm width, gap and inner radius of 0.86 mm and an outer radius of 28.3 mm. We simulated it with a 188 Ω feed across the arm ends (2.8 million cells) and each balun as a two-port with ports at both ends, and joined the two:
+The spiral of [1] has two arms of eight turns on a 60 mm × 60 mm board of the same substrate, with arm width, gap and inner radius of 0.86 mm and an outer radius of 28.3 mm. As in Fig. 9 of [1], we modelled the spiral and the balun together: the balun board stands under the centre of the spiral board, its two strips continue through the spiral board and join the inner ends of the arms on the top face, and the 50 Ω end is fed by a lumped port at the lower edge of the balun board. The model has 20 million cells, 0.1 mm at the centre of the spiral, with 40 mm of air on every side; the field energy fell 40 dB in 1.7 hours.
 
-$$ \Gamma_{\text{in}} = S_{11} + \frac{S_{12} S_{21} \Gamma_L}{1 - S_{22} \Gamma_L}. $$
+The antenna is below $-10$ dB from 1.75 GHz to 15 GHz except between 13.65 GHz and 13.90 GHz, where $|S_{11}|$ reaches $-9.4$ dB; [1] measured 2.5 GHz to 15 GHz. From 2 GHz to 5 GHz our curve follows the measured curve of [1], including its deep minimum near 3.5 GHz. The spiral alone, fed by 188 Ω across the arm ends, is matched from 1.65 GHz, close to the 1.69 GHz at which [1] puts its largest arm circumference at one wavelength.
 
-The spiral alone is matched to 188 Ω from 1.65 GHz, close to the 1.69 GHz at which [1] puts its largest arm circumference at one wavelength. Joined to the paper's balun, the antenna is below $-10$ dB from 1.59 GHz to 15 GHz, against 2.5 GHz to 15 GHz measured in [1]. From 2 GHz to 5 GHz it follows the measured curve of [1], including its deep minimum between 3.3 GHz and 3.5 GHz. The two balun runs give $|S_{12}|$ and $|S_{21}|$ within 0.25 dB of each other, as reciprocity requires.
+![Input $|S_{11}|$ of the spiral antenna at the 50 Ω connector with the paper's balun and with the improved balun, and the simulated and measured curves of Fig. 10 of [1].](../results/figures/fig_spiral_s11.png)
 
-![Input $|S_{11}|$ of the spiral antenna at the 50 Ω connector with the paper's balun and with the improved balun, the spiral alone referred to 188 Ω, and the simulated and measured curves of Fig. 10 of [1].](../results/figures/fig_spiral_s11.png)
+The spiral radiates on both sides of its board. Up to 10 GHz the two lobes along its axis are within 1.2 dB of each other, as in Fig. 11 of [1]. Table 6 gives the beamwidth as CST reports it, the width of the strongest lobe of each cut 3 dB below its peak.
 
-Table: Table 6. Half-power beamwidth of the spiral in the xz plane (E) and the yz plane (H): Table III of [1], our total field, and our $E_\theta$ component alone.
+Table: Table 6. Half-power beamwidth of the spiral in the xz plane (E) and the yz plane (H), Table III of [1] and our model. The last column gives the side of the strongest lobe: front is away from the balun.
 
-| $f$ (GHz) | [1], E | [1], H | total, E | total, H | $E_\theta$, E | $E_\theta$, H |
-|---:|---:|---:|---:|---:|---:|---:|
-| 2 | 94.6° | 81.8° | 95.6° | 94.9° | 81.9° | 82.3° |
-| 2.5 | 93.5° | 78.5° | 92.8° | 93.2° | 80.8° | 81.2° |
-| 3 | 86.4° | 78.3° | 87.5° | 87.6° | 78.7° | 79.2° |
-| 4 | 73.3° | 70.2° | 79.3° | 78.6° | 75.7° | 76.0° |
-| 5 | 64.9° | 67.1° | 71.3° | 75.0° | 72.5° | 76.8° |
-| 6 | 61.0° | 60.7° | 68.2° | 71.3° | 71.1° | 73.3° |
+| $f$ (GHz) | [1], E | ours, E | [1], H | ours, H | strongest lobe |
+|---:|---:|---:|---:|---:|---|
+| 2 | 94.6° | 97.3° | 81.8° | 93.8° | front |
+| 2.5 | 93.5° | 94.4° | 78.5° | 95.2° | front |
+| 3 | 86.4° | 85.8° | 78.3° | 81.9° | back |
+| 4 | 73.3° | 73.3° | 70.2° | 76.1° | back |
+| 5 | 64.9° | 62.2° | 67.1° | 64.9° | back |
+| 6 | 61.0° | 57.3° | 60.7° | 59.2° | back |
+| 10 | 53.8° | 64.5° | 47.3° | 76.3° | back |
+| 15 | 42.6° | 24.2° | 34.4° | 22.5° | back |
 
-The E-plane beamwidth of the total field is within 1.1° of [1] from 2 GHz to 3 GHz, and in both planes the beam narrows with frequency as in Table III. [1] measured with a linearly polarised horn; the $E_\theta$ component puts the H-plane within 0.5° to 6° of [1] up to 4 GHz. The pattern at 10 GHz has its maxima along the axis on both sides of the spiral and nulls in its plane, as in Fig. 11 of [1], and the peak directivity rises from 3.6 dBi at 2 GHz to 5.8 dBi at 6 GHz. At 10 GHz and 15 GHz our beams are wider than in Table III; there the active region of the spiral is only a few millimetres across, 13 to 20 cells of our mesh.
+From 2 GHz to 6 GHz our E-plane beamwidth is within 3.7° of Table III, and from 3 GHz to 6 GHz the H-plane is within 6°. At 2 GHz and 2.5 GHz our H-plane beam is 12° and 17° wider than in [1].
 
-![Normalised far field of the spiral at 10 GHz in the xz and yz planes.](../results/figures/fig_spiral_pattern_10GHz.png)
+At 10 GHz, [1] also shows its simulated pattern (Fig. 11). We read it from the figure: the front lobe is 66.8° wide and the back lobe 82.6°. Our yz cut follows it within 2.4 dB rms, with a front lobe of 66.9° and a back lobe of 76.3°, and like Fig. 11 it falls by more than 10 dB near the plane of the spiral. Table III gives 53.8° and 47.3° at 10 GHz, narrower than either lobe of the pattern in Fig. 11, so the 10 GHz row of Table III does not describe that pattern. At 15 GHz the strongest lobe of our model points along the balun and is 24° wide, against 42.6° and 34.4° in Table III; [1] shows no pattern at 15 GHz. In both models the beam narrows as the frequency rises, and our peak directivity rises from 3.5 dBi at 2 GHz to 6.6 dBi at 10 GHz.
+
+![Normalised far field of the antenna at 10 GHz in the xz and yz planes, over the simulated pattern of Fig. 11 of [1].](../results/figures/fig_spiral_pattern_10GHz.png)
 
 ## Summary of the validation
 
@@ -207,21 +212,22 @@ Table: Table 7. Results of [1] and the corresponding results of this project.
 
 | result in [1] | value in [1] | this project |
 |---|---|---|
-| structure B back to back, $\lvert S_{11}\rvert < -10$ dB | 1.75 to 15 GHz | 1.77 to 15 GHz |
+| structure B back to back, $\lvert S_{11}\rvert < -10$ dB | 1.75 to 15 GHz | 1.78 to 15 GHz |
 | insertion loss back to back | below 3 dB | below 0.98 dB |
-| structure A back to back | 2 to 14.3 GHz, worse than B | 92.7 % of the band against 99.8 % for B; first peak near 3.3 GHz as in [1] |
-| phase difference of strip currents | 180° | 180° ± 11.9°, common mode 19.2 dB down |
+| structure A back to back | 2 to 14.3 GHz, worse than B | 92.7 % of the band against 99.6 % for B; first peak near 3.3 GHz as in [1] |
+| phase difference of strip currents | 180° | 180° ± 8.8°, common mode 21.8 dB down |
 | surface current at 2.5 GHz | symmetric | symmetric |
 | longer balanced section | no change | matched in both cases; power balance within 0.5 dB |
-| spiral antenna, $\lvert S_{11}\rvert < -10$ dB | 2.5 to 15 GHz, measured | 1.59 to 15 GHz |
-| spiral beamwidths | Table III | E-plane within 1.1° at 2 to 3 GHz, same trend to 6 GHz |
+| spiral antenna, $\lvert S_{11}\rvert < -10$ dB | 2.5 to 15 GHz, measured | 1.75 to 15 GHz, except −9.4 dB at 13.65 to 13.90 GHz |
+| spiral pattern at 10 GHz | Fig. 11 | front lobe 66.9° against 66.8°, 2.4 dB rms |
+| spiral beamwidths | Table III | E-plane within 3.7° at 2 to 6 GHz, H-plane within 6° at 3 to 6 GHz |
 | impedance of the table rows | as stated | two rows inconsistent; corrected design used |
 
 # Improved design
 
 ## Aim
 
-The paper design reaches 1.77 GHz, so it covers only the top of the L band. We set out to cover 1 GHz to 15 GHz with the same substrate, the same 70 mm × 18 mm board per balun, the same 5 mm feed line and a 188 Ω balanced output.
+The paper design reaches 1.78 GHz, so it covers only the top of the L band. We set out to cover 1 GHz to 15 GHz with the same substrate, the same 70 mm × 18 mm board per balun, the same 5 mm feed line and a 188 Ω balanced output.
 
 ## Design
 
@@ -272,28 +278,29 @@ Table: Table 10. Paper design and improved design, both simulated in openEMS wit
 
 | quantity | [1], reported | paper design | improved |
 |---|---|---|---|
-| back to back, $\lvert S_{11}\rvert < -10$ dB from | 1.75 GHz | 1.77 GHz | 1.17 GHz |
-| back to back, worst $\lvert S_{11}\rvert$, 1.75 to 15 GHz | | −9.7 dB | −13.9 dB |
-| back to back, lowest $\lvert S_{21}\rvert$, 1.75 to 15 GHz | above −3 dB | −0.98 dB | −0.72 dB |
+| back to back, $\lvert S_{11}\rvert < -10$ dB from | 1.75 GHz | 1.78 GHz | 1.17 GHz |
+| back to back, worst $\lvert S_{11}\rvert$, 1.75 to 15 GHz | | −9.6 dB | −13.9 dB |
+| back to back, lowest $\lvert S_{21}\rvert$, 1.75 to 15 GHz | above −3 dB | −0.98 dB | −0.70 dB |
 | one balun, $\lvert S_{11}\rvert < -10$ dB from | | 1.15 GHz | 0.95 GHz |
 | one balun, worst $\lvert S_{11}\rvert$, 1.75 to 15 GHz | | −16.2 dB | −18.0 dB |
-| phase error of strip currents | | 11.9° | 8.4° |
-| common mode below differential mode | | 19.2 dB | 22.0 dB |
-| largest share of power lost | | 13.2 % | 11.8 % |
-| spiral antenna, worst $\lvert S_{11}\rvert$, 2.5 to 15 GHz | below −10 dB | −10.0 dB | −11.1 dB |
+| phase error of strip currents | | 8.8° | 7.2° |
+| common mode below differential mode | | 21.8 dB | 23.5 dB |
+| largest share of power lost | | 12.9 % | 11.5 % |
+| spiral antenna, $\lvert S_{11}\rvert < -10$ dB | 2.5 to 15 GHz | 1.75 to 15 GHz, except 13.65 to 13.90 GHz | 1.61 to 15 GHz |
+| spiral antenna, worst $\lvert S_{11}\rvert$, 2.5 to 15 GHz | below −10 dB | −9.4 dB | −10.2 dB |
 | board per balun | 70 mm × 18 mm | 70 mm × 18 mm | 70 mm × 18 mm |
 
-Back to back, the improved pair keeps $|S_{11}|$ below $-10$ dB from 1.17 GHz to 15 GHz, a bandwidth ratio of 12.8 to 1 against 8.6 to 1 in [1], with a worst reflection of $-13.9$ dB above 1.75 GHz and at most 0.72 dB insertion loss. A single improved balun into 188 Ω is matched from 0.95 GHz, so it covers the whole L band, with a worst reflection of $-18.0$ dB from 1.75 GHz to 15 GHz against $-16.2$ dB for the paper design. The strip currents are better balanced (8.4° and 1.27 dB, common mode 22 dB down) and less power is lost.
+Back to back, the improved pair keeps $|S_{11}|$ below $-10$ dB from 1.17 GHz to 15 GHz, a bandwidth ratio of 12.8 to 1 against 8.6 to 1 in [1], with a worst reflection of $-13.9$ dB above 1.75 GHz and at most 0.70 dB insertion loss. A single improved balun into 188 Ω is matched from 0.95 GHz, so it covers the whole L band, with a worst reflection of $-18.0$ dB from 1.75 GHz to 15 GHz against $-16.2$ dB for the paper design. The strip currents are better balanced (7.2° and 1.04 dB, common mode 23.5 dB down) and less power is lost.
 
 ![Phase and amplitude balance of the strip currents in the middle of the back-to-back pair, paper design and improved design.](../results/figures/fig_balance.png)
 
 ![Magnetic field just above the top conductor and just below the bottom conductor of the improved design back to back at 10 GHz.](../results/figures/fig_fields_b2b_improved_10GHz.png)
 
-Fed through the improved balun, the spiral antenna of [1] is matched from 1.61 GHz to 15 GHz, and its worst reflection above 2.5 GHz falls from $-10.0$ dB to $-11.1$ dB (spiral figure in Section 5.6). With either balun the lower limit is set by the size of the spiral, which alone is matched from 1.65 GHz.
+With the improved balun under it, the spiral antenna of [1] is matched from 1.61 GHz to 15 GHz without a break; with the paper design it rises to $-9.4$ dB near 13.8 GHz (spiral figure in Section 5.6). The lower limit is close to the 1.65 GHz of the spiral alone, which is set by its size. The beamwidths with the two baluns differ by at most 2° up to 10 GHz.
 
 # Conclusion
 
-We reproduced the wideband balun of [1] in openEMS. Built to the impedance profile of the paper, it is matched back to back from 1.77 GHz to 15 GHz (1.75 GHz to 15 GHz in [1]) with less than 1 dB insertion loss, and its current balance, surface current, structure A comparison and balanced section test agree with [1]. The paper's spiral antenna fed through it is matched from 1.59 GHz to 15 GHz (2.5 GHz to 15 GHz measured in [1]). Our cross-section solver showed that two rows of the paper's Table I do not give their stated impedance, and that built as printed they add two reflection peaks near 6 GHz.
+We reproduced the wideband balun of [1] in openEMS. Built to the impedance profile of the paper, it is matched back to back from 1.78 GHz to 15 GHz (1.75 GHz to 15 GHz in [1]) with less than 1 dB insertion loss, and its current balance, surface current, structure A comparison and balanced section test agree with [1]. The paper's spiral antenna with this balun under it is matched from 1.75 GHz to 15 GHz apart from $-9.4$ dB near 13.8 GHz (2.5 GHz to 15 GHz measured in [1]). Its E-plane beamwidth is within 3.7° of Table III of [1] up to 6 GHz, and its 10 GHz pattern follows Fig. 11 of [1]. Our cross-section solver showed that two rows of the paper's Table I do not give their stated impedance, and that built as printed they add two reflection peaks near 6 GHz.
 
 The improved balun spends 60 mm of the same board on a Klopfenstein taper whose every cross-section is solved for its impedance. It is matched back to back from 1.17 GHz and as a single balun from 0.95 GHz, with better balance and lower loss. It covers the L, S, C and X bands, as the project title asks. All results are simulations; fabrication and measurement are the next step.
 

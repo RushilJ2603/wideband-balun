@@ -100,6 +100,7 @@ def postprocess(path):
         t.style = d.styles["Table"] if "Table" in [s.name for s in d.styles] else t.style
         t.alignment = 1
         for k, row in enumerate(t.rows):
+            row._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
             for cell in row.cells:
                 for p in cell.paragraphs:
                     p.alignment = WD_ALIGN_PARAGRAPH.LEFT

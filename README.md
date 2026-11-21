@@ -11,13 +11,13 @@ Back to back, the paper design and the improved design, both in openEMS with the
 
 | | paper, reported | paper design | improved |
 |---|---|---|---|
-| \|S11\| < −10 dB | 1.75 to 15 GHz | 1.77 to 15 GHz | 1.17 to 15 GHz |
-| worst \|S11\|, 1.75 to 15 GHz | | −9.7 dB | −13.9 dB |
-| lowest \|S21\|, 1.75 to 15 GHz | above −3 dB | −0.98 dB | −0.72 dB |
-| strip current phase error | | 11.9° | 8.4° |
-| common mode below differential mode | | 19.2 dB | 22.0 dB |
+| \|S11\| < −10 dB | 1.75 to 15 GHz | 1.78 to 15 GHz | 1.17 to 15 GHz |
+| worst \|S11\|, 1.75 to 15 GHz | | −9.6 dB | −13.9 dB |
+| lowest \|S21\|, 1.75 to 15 GHz | above −3 dB | −0.98 dB | −0.70 dB |
+| strip current phase error | | 8.8° | 7.2° |
+| common mode below differential mode | | 21.8 dB | 23.5 dB |
 
-One balun into 188 Ω is matched (|S11| < −10 dB) from 1.15 GHz with the paper design and from 0.95 GHz with the improved taper. The paper's spiral antenna fed through the paper design is below −10 dB from 1.59 GHz to 15 GHz (2.5 to 15 GHz measured in the paper).
+One balun into 188 Ω is matched (|S11| < −10 dB) from 1.15 GHz with the paper design and from 0.95 GHz with the improved taper. The paper's spiral antenna, simulated together with the paper design under it, is below −10 dB from 1.75 GHz to 15 GHz apart from −9.4 dB at 13.65 to 13.90 GHz (2.5 to 15 GHz measured in the paper). Its E-plane beamwidth is within 3.7° of Table III of the paper from 2 to 6 GHz, and its 10 GHz pattern follows the simulated pattern of Fig. 11 of the paper (front lobe 66.9° against 66.8°).
 
 ![Back to back and single-balun |S11|](results/figures/fig_compare.png)
 
@@ -43,12 +43,15 @@ matlab -batch "build_all"         # writes the openEMS models to %TEMP%\balun_si
 bash run_sims.sh                  # runs openEMS on every model
 matlab -batch "post_all"          # S-parameters and strip currents to results/
 python3 export_fields.py b2b_paper_B_stated b2b_improved
-python3 cascade_spiral.py paper_B_stated improved
-python3 summarize.py              # results/summary.csv
+matlab -batch "build_antennas"    # spiral alone, and spiral with each balun under it
+bash run_sims.sh spiral_lumped spiral_full spiral_full_improved
+matlab -batch "post_spiral('spiral_full')"     # and the other two
+python3 far_field.py spiral_full spiral_full_improved   # after nf2ff.exe nf2ff.xml in each run folder
+python3 summarize.py              # results/summary.csv, spiral_numbers.csv, spiral_fig11.csv
 python3 plots.py                  # results/figures/
 ```
 
-The spiral antenna: `build_spiral('spiral_lumped', ..., struct('feed', 'lumped'))` in MATLAB, run openEMS, `post_spiral('spiral_lumped')`, run `nf2ff.exe nf2ff.xml` in the run folder, then `python3 far_field.py spiral_lumped`. `cascade_spiral.py` joins it to the two-port of each balun.
+The antenna models hold the spiral board and the balun board together, as in Fig. 9 of the paper, with a 50 Ω lumped port at the lower edge of the balun; each has about 20 million cells and runs for 1.7 hours on 16 threads. The far field is computed by `nf2ff.exe nf2ff.xml` in the run folder. The simulated 10 GHz pattern of Fig. 11 of the paper was read with `digitize_paper.py fig11`.
 
 Windows runs processes started from a terminal without a window in efficiency mode, which slowed openEMS by a factor of four here; `src/no_throttle.ps1` turns that off for running openEMS processes.
 
@@ -61,7 +64,7 @@ MATLAB R2025b reads the openEMS probe files only with `load -ascii`, so `src/Rea
 ```
 src/        openEMS models (MATLAB), cross-section solver, line model, synthesis, figures (Python)
 geometry/   outline of every simulated structure: z, top width, bottom width (mm)
-data/paper/ S11 curves digitised from Figs. 7 and 10 of the paper
+data/paper/ S11 curves of Figs. 7 and 10 and the 10 GHz pattern of Fig. 11, digitised from the paper
 results/    S-parameters, strip currents, field maps, summary.csv, figures/
 report/     report source (Markdown) and build script
 slides/     presentation build script
