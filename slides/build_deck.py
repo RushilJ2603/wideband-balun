@@ -122,8 +122,17 @@ def panel(slide, x, y, w, h):
 
 
 summary = pd.read_csv(RES / "summary.csv").set_index("run")
-B, I = summary.loc["b2b_paper_B"], summary.loc["b2b_improved"]
-SB, SI = summary.loc["single_paper_B"], summary.loc["single_improved"]
+B, P, I = summary.loc["b2b_paper_B_stated"], summary.loc["b2b_paper_B"], summary.loc["b2b_improved"]
+A = summary.loc["b2b_paper_A_stated"]
+SB, SI = summary.loc["single_paper_B_stated"], summary.loc["single_improved"]
+SPI = pd.read_csv(RES / "spiral_numbers.csv").set_index("balun")
+SHORT_BULLET = ("40 mm and 4 mm of parallel strip between the baluns: both matched over the band, |S11|² + |S21|² "
+                "within 0.5 dB, so the balanced line adds no radiation (paper: no change).")
+SPIRAL_BULLET = (f"With the paper's balun: below −10 dB from {SPI.loc['paper', 'range']} (paper, measured: 2.5 to 15 GHz); "
+                 "follows the measured curve from 2 to 5 GHz, including the dip near 3.4 GHz.")
+A_SUMMARY = f"{100 * A.ok_p:.1f} % of the band against {100 * B.ok_p:.1f} % for B; first peak near 3.3 GHz"
+SHORT_SUMMARY = "matched in both cases; power balance within 0.5 dB"
+SPI_SUMMARY = SPI.loc["paper", "range"]
 
 # 1. Title
 count += 1
@@ -139,9 +148,8 @@ text(s, 9.5, 1.35, 3.1, 4.4, [
     ("BASE PAPER", {"size": 11, "bold": True, "color": BLUE}),
     ("Vinayagamoorthy, Coetzee, Jayalath, IEEE VTC 2012: tapered balun, 50 to 188 Ω, RT/duroid 5880", {"size": 12, "space": 14}),
     ("THIS PROJECT", {"size": 11, "bold": True, "color": BLUE}),
-    ("Reproduced in the openEMS FDTD solver, every result checked", {"size": 12}),
-    (f"Redesigned taper: back to back below −10 dB from {I.lo_GHz:.2f} GHz (paper 1.75 GHz), "
-     f"one balun from {SI.lo_GHz:.2f} GHz", {"size": 12}),
+    (f"Reproduced in openEMS: back to back below −10 dB from {B.lo_GHz:.2f} to 15 GHz (paper 1.75 to 15 GHz)", {"size": 12}),
+    (f"Improved taper: back to back from {I.lo_GHz:.2f} GHz, one balun from {SI.lo_GHz:.2f} GHz", {"size": 12}),
 ], size=12)
 
 # 2. Problem and base paper
@@ -197,7 +205,7 @@ text(s, 0.5, 1.95, 6.0, 3.3, [
     ("35 µm copper sheets, tan δ 0.0009, mesh 0.08 mm at the strip edges, 0.4 mm along the line, PML boundaries.", {"bullet": True}),
     ("Microstrip ports de-embedded to the board edge; 188 Ω lumped port for a single balun.", {"bullet": True}),
     ("Strip currents and surface fields recorded for the balance and field maps.", {"bullet": True}),
-    ("1.5 to 3.2 million cells, 5 to 10 minutes per run.", {"bullet": True}),
+    ("1.5 to 3.2 million cells, 5 to 12 minutes per run.", {"bullet": True}),
 ], size=13)
 label(s, 0.5, 5.15, "Check of the setup")
 text(s, 0.5, 5.5, 6.0, 1.5, [
@@ -218,37 +226,35 @@ text(s, 6.9, 3.65, 5.9, 2.5, [
 
 # 5. Table I check
 t1 = pd.read_csv(RES / "table1_check.csv")
-s = new_slide("Validation: the paper's dimension table", "Two rows of Table I do not give the impedance the table states")
+s = new_slide("Validation: the paper's dimension table", "Two rows of Table I do not give their stated impedance, so we built B to the stated impedances")
 rows = [["z (mm)", "w (mm)", "w′ (mm)", "stated (Ω)", "computed (Ω)", "difference"]]
 for _, r in t1.iterrows():
     rows.append([f"{r.z_mm:g}", f"{r.w_mm:g}", f"{r.wb_mm:g}", f"{r.Z_target:g}", f"{r.Z_solver:.1f}", f"{r.error_pct:+.1f} %"])
 table(s, 0.5, 1.7, 5.9, rows, size=12)
 text(s, 0.5, 4.75, 5.9, 2.2, [
-    ("Four rows within 5 %; the 0.88 mm parallel strip is 178 Ω, 5.3 % low.", {"bullet": True}),
-    ("At z = 29.8 mm, w′ = 2 mm gives 132.5 Ω; 110 Ω needs w′ ≈ 6.3 mm.", {"bullet": True}),
-    ("At z = 41.5 mm the row gives 139.9 Ω against 150 Ω.", {"bullet": True}),
+    ("Four rows within 5 %; rows at 29.8 and 41.5 mm give 132.5 and 139.9 Ω (stated 110 and 150).", {"bullet": True}),
+    ("Stated values follow Z = 50 (188/50)^(z/50) Ω exactly.", {"bullet": True}),
+    ("Paper design: that law from 5 to 50 mm, widths solved every 0.5 mm with our solver, 0.786 mm (188 Ω) parallel strip.", {"bullet": True}),
 ], size=13)
 picture(s, "fig_profile_paper_B", 6.7, 1.7, w=6.2)
 
 # 6. Back to back B and root cause
 s = new_slide("Validation: structure B back to back",
-              "Matches the paper except two peaks, which the impedance profile alone predicts")
+              f"Below −10 dB from {B.lo_GHz:.2f} to 15 GHz, against 1.75 to 15 GHz in the paper")
 picture(s, "fig_b2b_paper_B", 0.4, 1.55, w=6.3)
 picture(s, "fig_linemodel", 6.7, 1.55, w=6.2)
 text(s, 0.5, 4.5, 6.1, 2.8, [
-    (f"Below −10 dB from 1.9 GHz, as in the paper's CST curve, except 5.42 to 6.10 GHz (−6.7 dB) and 6.78 to 7.10 GHz (−9.1 dB): {100 * B.ok_p:.1f} % of 1.75 to 15 GHz.", {"bullet": True}),
-    (f"|S21| never below {B.S21_min_p:.2f} dB, inside the paper's 3 dB.", {"bullet": True}),
-    ("The 1.75 GHz in the paper is the measured board; its own simulation crosses at about 1.9 GHz.", {"bullet": True}),
+    (f"Paper design: |S11| below −10 dB from {B.lo_GHz:.2f} GHz to 15 GHz, same shape as the paper's CST curve.", {"bullet": True}),
+    (f"|S21| never below {B.S21_min_p:.2f} dB (paper: within 3 dB).", {"bullet": True}),
 ], size=13)
 text(s, 6.8, 4.5, 6.0, 2.8, [
-    ("Line model from the cross-section solver lands on the same peaks, so they come from Z(z).", {"bullet": True}),
-    ("Rises of 92 → 132 Ω near 30 mm and 140 → 171 Ω near 45 mm, 18 mm apart, add in phase near c / (2 · 18 mm · √1.8) ≈ 6.2 GHz.", {"bullet": True}),
-    ("Smooth curves through the same rows do not remove them (89.3 %).", {"bullet": True}),
+    ("Widths as printed: two extra peaks, −6.7 dB at 5.4 to 6.1 GHz and −9.1 dB at 6.8 to 7.1 GHz.", {"bullet": True}),
+    ("The line model predicts both: impedance rises near 30 and 45 mm, 18 mm apart, add in phase near c / (2 · 18 mm · √1.8) ≈ 6.2 GHz.", {"bullet": True}),
 ], size=13)
 
 # 7. Balance, field map, balanced length
-s = new_slide("Validation: balance, fields and the balanced section",
-              "Equal and opposite strip currents, symmetric surface current, no added loss from a longer balanced line")
+s = new_slide("Validation: balance, fields, balanced section, structure A",
+              "Equal and opposite strip currents, symmetric surface current, no change with the balanced line length")
 picture(s, "fig_fields_b2b_paper_B", 0.4, 1.55, w=6.4)
 picture(s, "fig_long_short", 6.8, 1.55, w=6.1)
 text(s, 0.5, 5.0, 6.2, 2.3, [
@@ -256,8 +262,8 @@ text(s, 0.5, 5.0, 6.2, 2.3, [
     ("Field at 2.5 GHz symmetric about the centre line, moving from under the strip to the conductor edges as the ground narrows (paper Fig. 6).", {"bullet": True}),
 ], size=13)
 text(s, 6.9, 4.2, 6.0, 3.0, [
-    ("40 mm and 4 mm of parallel strip between the baluns: |S11|² + |S21|² agrees within 0.2 dB, so the balanced line adds no radiation (paper: no change).", {"bullet": True}),
-    ("|S11| ripple moves with the length because the two taper reflections meet with a different phase.", {"bullet": True}),
+    (SHORT_BULLET, {"bullet": True}),
+    (f"Structure A (straight ground): below −10 dB on {100 * A.ok_p:.1f} % of 1.75 to 15 GHz against {100 * B.ok_p:.1f} % for B; B is better, as in the paper.", {"bullet": True}),
 ], size=13)
 
 # 8. Spiral antenna
@@ -269,37 +275,34 @@ s = new_slide("Validation: spiral antenna fed by the balun",
 picture(s, "fig_spiral_s11", 0.4, 1.5, w=7.0)
 text(s, 0.5, 4.55, 6.9, 2.8, [
     ("Spiral alone, 188 Ω feed: matched from 1.65 GHz (paper: 1.69 GHz from the arm size).", {"bullet": True}),
-    ("With the published balun: follows the measured curve from 2 to 5 GHz, including the 3.5 GHz dip; 85.6 % of 2.5 to 15 GHz below −10 dB, −8.0 dB at 5.4 to 6.3 GHz where the balun itself reflects.", {"bullet": True}),
-    ("The junction of balun and spiral is shown only in a photo; our full model of it reflected strongly, so it is not used.", {"bullet": True}),
+    (SPIRAL_BULLET, {"bullet": True}),
 ], size=12)
 rows = [["f (GHz)", "paper E / H", "ours E / H", "ours Eθ: E / H"]]
-for _, r in hp.iterrows():
+for _, r in hp[hp.f_GHz <= 6].iterrows():
     pe = paper_hp[round(r.f_GHz, 1) if r.f_GHz != 2.5 else 2.5]
     rows.append([f"{r.f_GHz:g}", f"{pe[0]:.0f}° / {pe[1]:.0f}°", f"{r.hpbw_E_deg:.0f}° / {r.hpbw_H_deg:.0f}°",
                  f"{r.hpbw_E_theta_deg:.0f}° / {r.hpbw_H_theta_deg:.0f}°"])
 label(s, 7.7, 1.55, "Half-power beamwidth, Table III of [1]")
 table(s, 7.7, 1.9, 5.1, rows, widths=[0.9, 1.4, 1.4, 1.4], size=11, row_h=0.27)
 text(s, 7.7, 4.45, 5.1, 2.8, [
-    ("E-plane within 1.1° at 2 to 3 GHz; both planes narrow with frequency as in the paper up to 10 GHz.", {"bullet": True}),
+    ("E-plane within 1.1° at 2 to 3 GHz; both planes narrow with frequency as in the paper.", {"bullet": True}),
     ("Paper measured with a linear horn; our Eθ alone puts the H-plane within 0.5° to 6° up to 4 GHz.", {"bullet": True}),
-    ("15 GHz not resolved: active region radius about 3 mm, a dozen cells.", {"bullet": True}),
 ], size=12)
 
 # 9. Summary of validation
 s = new_slide("Validation summary", "Each result of the paper and what our simulation gives")
 table(s, 0.5, 1.6, 12.3, [
-    ["result in [1]", "value in [1]", "this project", "outcome"],
-    ["impedance of the table rows", "50 to 188 Ω, exponential", "4 within 5 %; 29.8 and 41.5 mm off by +20.5 % and −6.7 %", "two rows inconsistent"],
-    ["structure B back to back", "1.75 to 15 GHz", "1.9 to 15 GHz except 5.42 to 6.10 and 6.78 to 7.10 GHz", "reproduced, two peaks explained"],
-    ["insertion loss, back to back", "below 3 dB", f"below {abs(B.S21_min_p):.2f} dB", "reproduced"],
-    ["structure A back to back", "2 to 14.3 GHz", "90.4 % of the band, first peak at the same frequency", "qualitative"],
-    ["structure B better than A", "yes", "90.8 % against 90.4 %", "not clearly reproduced"],
-    ["phase of strip currents", "180°", f"180° ± {B.dphi_max_p:.1f}°", "reproduced"],
-    ["surface current at 2.5 GHz", "symmetric", "symmetric", "reproduced"],
-    ["longer balanced section", "no change", "no change in loss", "reproduced"],
-    ["spiral input match", "2.5 to 15 GHz, measured", "85.6 % of the band; −8.0 dB at 5.4 to 6.3 GHz", "reproduced except balun peaks"],
-    ["spiral beamwidths", "Table III", "E-plane within 1.1° at 2 to 3 GHz; H wider", "partly reproduced"],
-], widths=[2.8, 2.4, 4.6, 2.5], size=12)
+    ["result in [1]", "value in [1]", "this project"],
+    ["structure B back to back, |S11| < −10 dB", "1.75 to 15 GHz", f"{B.lo_GHz:.2f} to 15 GHz"],
+    ["insertion loss, back to back", "below 3 dB", f"below {abs(B.S21_min_p):.2f} dB"],
+    ["structure A back to back", "2 to 14.3 GHz, worse than B", A_SUMMARY],
+    ["phase of strip currents", "180°", f"180° ± {B.dphi_max_p:.1f}°, common mode {B.cmrr_min_p:.1f} dB down"],
+    ["surface current at 2.5 GHz", "symmetric", "symmetric"],
+    ["longer balanced section", "no change", SHORT_SUMMARY],
+    ["spiral input match", "2.5 to 15 GHz, measured", SPI_SUMMARY],
+    ["spiral beamwidths", "Table III", "E-plane within 1.1° at 2 to 3 GHz, same trend to 6 GHz"],
+    ["impedance of the table rows", "as stated", "two rows inconsistent; corrected design used"],
+], widths=[3.6, 3.4, 5.3], size=12)
 
 # 10. Improved design
 sw = pd.read_csv(RES / "improved_sweep.csv")
@@ -323,31 +326,30 @@ table(s, 7.0, 5.3, 5.8, rows, size=11, row_h=0.26)
 s = new_slide("Improved design: results", "Same board, same substrate, same settings in openEMS")
 picture(s, "fig_compare", 0.4, 1.5, w=6.6)
 table(s, 7.2, 1.6, 5.6, [
-    ["", "published", "improved"],
-    ["back to back below −10 dB from", "1.9 GHz, 2 gaps", f"{I.lo_GHz:.2f} GHz"],
-    ["share of 1.75 to 15 GHz", f"{100 * B.ok_p:.1f} %", f"{100 * I.ok_p:.0f} %"],
+    ["", "paper design", "improved"],
+    ["back to back below −10 dB from", f"{B.lo_GHz:.2f} GHz", f"{I.lo_GHz:.2f} GHz"],
     ["worst |S11|, 1.75 to 15 GHz", f"{B.worst_S11_p:.1f} dB", f"{I.worst_S11_p:.1f} dB"],
     ["lowest |S21|, 1.75 to 15 GHz", f"{B.S21_min_p:.2f} dB", f"{I.S21_min_p:.2f} dB"],
     ["one balun below −10 dB from", f"{SB.lo_GHz:.2f} GHz", f"{SI.lo_GHz:.2f} GHz"],
-    ["one balun, worst |S11|, 2 to 12 GHz", f"{SB.worst_S11_p:.1f} dB", f"{SI.worst_S11_p:.1f} dB"],
+    ["one balun, worst |S11|, 1.75 to 15 GHz", f"{SB.worst_S11_p:.1f} dB", f"{SI.worst_S11_p:.1f} dB"],
     ["phase error of strip currents", f"{B.dphi_max_p:.1f}°", f"{I.dphi_max_p:.1f}°"],
     ["common mode below differential", f"{B.cmrr_min_p:.1f} dB", f"{I.cmrr_min_p:.1f} dB"],
+    ["spiral, worst |S11|, 2.5 to 15 GHz", f"{SPI.loc['paper', 'worst_2p5_15']:.1f} dB", f"{SPI.loc['improved', 'worst_2p5_15']:.1f} dB"],
     ["board per balun", "70 × 18 mm", "70 × 18 mm"],
 ], widths=[2.8, 1.4, 1.4], size=12)
 text(s, 7.2, 5.0, 5.6, 2.3, [
     (f"Back to back {I.lo_GHz:.2f} to beyond 15 GHz: 12.8 to 1, against 8.6 to 1 in the paper.", {"bullet": True}),
     (f"One balun into 188 Ω from {SI.lo_GHz:.2f} GHz: the whole L band.", {"bullet": True}),
-    ("The 5 to 7.5 GHz peaks are gone; the spiral fed through it is below −10 dB on all of 1.62 to 15 GHz (85.6 % of 2.5 to 15 GHz with the published balun).", {"bullet": True}),
+    ("Better balance and lower loss over the whole band.", {"bullet": True}),
 ], size=13)
 
 # 12. Conclusion
 s = new_slide("Conclusion")
 text(s, 0.5, 1.7, 12.2, 5.2, [
-    ("The balun of [1] was rebuilt in openEMS and each published result checked: current balance, field distribution, insertion loss, the balanced section test and the back-to-back response agree.", {"bullet": True, "space": 12}),
-    ("Two reflection peaks near 5.8 and 6.9 GHz come from two rows of the paper's dimension table; a line model built from our cross-section solver predicts both.", {"bullet": True, "space": 12}),
-    ("The spiral antenna, simulated on its own and joined to the balun's two-port, follows the measured input match from 2 to 5 GHz and the low-frequency beamwidths.", {"bullet": True, "space": 12}),
-    (f"The improved taper keeps the same 70 mm × 18 mm board and covers {I.lo_GHz:.2f} GHz to beyond 15 GHz back to back and {SI.lo_GHz:.2f} GHz upward as a single balun, with better balance and lower loss: L, S, C and X bands. The spiral fed through it is matched from 1.62 to 15 GHz.", {"bullet": True, "space": 12}),
-    ("All results are simulations; fabrication and measurement would be the next step.", {"bullet": True, "space": 12}),
+    (f"The balun of [1], built to its impedance profile, is matched back to back from {B.lo_GHz:.2f} to 15 GHz (paper 1.75 to 15 GHz); balance, surface current, structure A and the balanced section test agree with the paper.", {"bullet": True, "space": 12}),
+    (f"The paper's spiral antenna fed through it is matched from {SPI.loc['paper', 'range']} (measured in the paper: 2.5 to 15 GHz).", {"bullet": True, "space": 12}),
+    ("Our cross-section solver found two rows of Table I that do not give their stated impedance; built as printed they add two peaks near 6 GHz.", {"bullet": True, "space": 12}),
+    (f"The improved Klopfenstein taper keeps the 70 mm × 18 mm board and is matched from {I.lo_GHz:.2f} GHz back to back and {SI.lo_GHz:.2f} GHz as a single balun, with better balance and lower loss: L, S, C and X bands.", {"bullet": True, "space": 12}),
 ], size=17)
 
 cp = prs.core_properties

@@ -92,14 +92,19 @@ def postprocess(path):
             p.paragraph_format.page_break_before = True
         if p.style.name == "Heading 1" and p.text.strip().startswith("Introduction"):
             p.paragraph_format.page_break_before = True
+    # Keep each table on one page together with its caption.
+    for p in body:
+        if p.style.name == "Table Caption":
+            p.paragraph_format.keep_with_next = True
     for t in d.tables:
         t.style = d.styles["Table"] if "Table" in [s.name for s in d.styles] else t.style
         t.alignment = 1
-        for row in t.rows:
+        for k, row in enumerate(t.rows):
             for cell in row.cells:
                 for p in cell.paragraphs:
                     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                     p.paragraph_format.space_after = Pt(2)
+                    p.paragraph_format.keep_with_next = k < len(t.rows) - 1
                     for r in p.runs:
                         r.font.size = Pt(10)
     footer = d.sections[0].footer.paragraphs[0]
