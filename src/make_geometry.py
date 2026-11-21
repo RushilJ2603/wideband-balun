@@ -3,21 +3,17 @@
 Each file lists z (mm from the unbalanced end), top strip width w and
 bottom conductor width wb for one balun.
 
-paper_B   Table I of the paper, which the authors built as structure B.
-paper_B_smooth
-          Table I joined by a monotone cubic (PCHIP) instead of straight
-          lines. The photograph of the built board, Fig. 7(b), shows curved
-          edges, so this is the other reasonable reading of the table.
-paper_A   Same top strip and length, with the bottom conductor narrowing
-          linearly from 18 mm to 0.88 mm between z = 5 and z = 50 mm. The
-          paper only shows structure A in a photograph, so this straight
-          outline is an assumption based on Fig. 7(b).
+paper_B   Table I of the paper exactly as printed, widths joined by
+          straight lines.
+
+The outlines built to the impedances the table states (paper_B_stated,
+paper_A_stated) and the improved balun need the cross-section table and
+are written by design_improved.py.
 """
 
 from pathlib import Path
 
 import numpy as np
-from scipy.interpolate import PchipInterpolator
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / "geometry"
@@ -46,23 +42,6 @@ def paper_b():
     write("paper_B", t[:, 0], t[:, 1], t[:, 2])
 
 
-def paper_b_smooth():
-    t = np.vstack([[0.0, 4.80, 18.00], TABLE_I])
-    knots = t[(t[:, 0] >= 5) & (t[:, 0] <= 50)]
-    zs = np.arange(5.0, 50.0 + 1e-9, 0.5)
-    w = PchipInterpolator(knots[:, 0], knots[:, 1])(zs)
-    wb = PchipInterpolator(knots[:, 0], knots[:, 2])(zs)
-    z = np.concatenate([[0.0], zs, [70.0]])
-    write("paper_B_smooth", z, np.concatenate([[4.8], w, [0.88]]), np.concatenate([[18.0], wb, [0.88]]))
-
-
-def paper_a():
-    t = np.vstack([[0.0, 4.80, 18.00], TABLE_I])
-    z = t[:, 0]
-    wb = np.where(z <= 5, 18.0, np.where(z >= 50, 0.88, 18.0 + (0.88 - 18.0) * (z - 5) / 45))
-    write("paper_A", z, t[:, 1], wb)
-
-
 def short_middle(src, name, keep):
     """Copy of a balun with the parallel-strip end cut to `keep` mm, used
     for the common-mode check of Section II of the paper."""
@@ -76,7 +55,4 @@ def short_middle(src, name, keep):
 
 if __name__ == "__main__":
     paper_b()
-    paper_b_smooth()
-    paper_a()
-    short_middle("paper_B", "paper_B_short", 2.0)
     print("\n".join(sorted(f.name for f in OUT.glob("*.csv"))))

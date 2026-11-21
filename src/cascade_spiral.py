@@ -8,10 +8,11 @@ balun, from two full-wave results joined as networks:
 
     Gamma_in = S11 + S12 S21 Gamma_L / (1 - S22 Gamma_L)
 
-Writes results/spiral_<name>_cascade.csv and prints the reciprocity check
-S12 = S21 of each balun.
+Writes results/spiral_<name>_cascade.csv for each balun, a short table of
+the matched band in results/spiral_numbers.csv, and prints the
+reciprocity check S12 = S21 of each balun.
 
-    python3 cascade_spiral.py paper_B improved
+    python3 cascade_spiral.py paper_B_stated improved
 """
 
 import sys
@@ -20,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 from plots import RES, db, load_sp
+from summarize import lower_edge
 
 
 def cascade(name):
@@ -35,11 +37,18 @@ def cascade(name):
     pd.DataFrame(dict(f_GHz=f, s11_re=gin.real, s11_im=gin.imag)).to_csv(RES / f"spiral_{name}_cascade.csv", index=False)
     rec = np.abs(db(s12) - db(s21))
     band = (f >= 2) & (f <= 15)
+    lo = lower_edge(f, gin)
+    p = (f >= 2.5) & (f <= 15)
+    row = dict(balun="paper" if name.startswith("paper") else name, lo_GHz=round(lo, 2),
+               range=f"{lo:.2f} to 15 GHz", share_2p5_15=round(float((db(gin[p]) < -10).mean()), 3),
+               worst_2p5_15=round(float(db(gin[p]).max()), 1), reciprocity_dB=round(float(rec[band].max()), 2))
     print(f"{name}: |S12| and |S21| differ by at most {rec[band].max():.2f} dB from 2 to 15 GHz; "
           f"input |S11| worst {db(gin[band]).max():.1f} dB from 2 to 15 GHz, "
           f"{db(gin[(f >= 2.5) & (f <= 15)]).max():.1f} dB from 2.5 to 15 GHz")
+    return row
 
 
 if __name__ == "__main__":
-    for n in sys.argv[1:]:
-        cascade(n)
+    rows = [cascade(n) for n in sys.argv[1:]]
+    pd.DataFrame(rows).to_csv(RES / "spiral_numbers.csv", index=False)
+    print(pd.DataFrame(rows).to_string(index=False))

@@ -23,7 +23,7 @@ Usage: python3 design_improved.py            sweep and write geometry
 import numpy as np
 import pandas as pd
 
-from make_geometry import OUT as GEO, write
+from make_geometry import OUT as GEO, short_middle, write
 from taper import back_to_back, cascade, klopfenstein, lower_edge
 from ztable import ZTable
 
@@ -91,6 +91,44 @@ def sweep():
     return d
 
 
+def paper_stated(T, p=2.0, n=91):
+    """Structure B built to the impedances that Table I states. They follow
+    Z = 50 (188/50)^(z/50), the exponential law of Fig. 2(a) of the paper,
+    which gives 70 ohm at 12.7 mm, 110 ohm at 29.8 mm and so on. The 50 ohm
+    line runs to z = 5 mm as in the table, the law takes over from there to
+    z = 50 mm, and 188 ohm parallel strip runs to 70 mm. At each point the
+    top width is solved from the cross-section table with the same width
+    ratio rule as the improved balun."""
+    z = np.linspace(FEED, 50.0, n)
+    u = (z - FEED) / (50.0 - FEED)
+    Zu = 50.0 * (ZL / 50.0) ** (z / 50.0)
+    r = 1 + (WB0 / W50 - 1) * (1 - u) ** p
+    w = np.array([T.width_for_ratio(a, ri) for a, ri in zip(Zu, r)])
+    wend = T.square_for(ZL)
+    z[0] += 0.05
+    g = np.array([[0.0, W50, WB0], [FEED, W50, WB0]] + [[a, b, ri * b] for a, b, ri in zip(z, w, r)]
+                 + [[LTOT, wend, wend]])
+    Z = np.array([T.z(a, b) for a, b in zip(g[:, 1], g[:, 2])])
+    return g, (g[:, 0], Z, np.array([T.eeff(a, b) for a, b in zip(g[:, 1], g[:, 2])]))
+
+
+def write_paper_stated():
+    T = ZTable()
+    g, prof = paper_stated(T)
+    write("paper_B_stated", g[:, 0], g[:, 1], g[:, 2])
+    pd.DataFrame(dict(z_mm=g[:, 0], w_mm=g[:, 1], wb_mm=g[:, 2], Z_ohm=np.round(prof[1], 2),
+                      eeff=np.round(prof[2], 4))).to_csv(RES / "profile_paper_B_stated.csv", index=False)
+    # Structure A: the same top strip over a ground that narrows linearly.
+    z, wend = g[:, 0], g[-1, 1]
+    wb = np.where(z <= FEED, WB0, np.where(z >= 50.0, wend, WB0 + (wend - WB0) * (z - FEED) / (50.0 - FEED)))
+    write("paper_A_stated", z, g[:, 1], wb)
+    # 4 mm of parallel strip between the two baluns instead of 40 mm.
+    short_middle("paper_B_stated", "paper_B_stated_short", 2.0)
+    f = np.linspace(0.5e9, 16e9, 621)
+    s11, b11 = evaluate(prof, f)
+    print("structure B, stated impedances:", metrics(f, s11, b11))
+
+
 CHOSEN = dict(Lt=60.0, gm=0.12, p=2.0)
 
 
@@ -112,3 +150,4 @@ def write_chosen():
 if __name__ == "__main__":
     sweep()
     write_chosen()
+    write_paper_stated()

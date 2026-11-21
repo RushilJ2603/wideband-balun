@@ -54,4 +54,3 @@ if __name__ == "__main__":
     solver_check()
     table1()
     outline_profile("paper_B")
-    outline_profile("paper_A")

@@ -1,8 +1,8 @@
 % Reads every finished balun run listed in build_all.
 
 function post_all()
-names = {'b2b_paper_B', 'b2b_paper_A', 'b2b_paper_B_smooth', 'b2b_paper_B_short', ...
-    'b2b_improved', 'single_paper_B', 'single_improved'};
+names = {'b2b_paper_B', 'b2b_paper_B_stated', 'b2b_paper_A_stated', 'b2b_paper_B_stated_short', ...
+    'b2b_improved', 'single_paper_B_stated', 'single_paper_B_stated_p2', 'single_improved', 'single_improved_p2'};
 for k = 1:numel(names)
     if exist(fullfile(tempdir, 'balun_sims', names{k}, 'port_ut_1'), 'file') || ...
             ~isempty(dir(fullfile(tempdir, 'balun_sims', names{k}, 'port_ut*')))

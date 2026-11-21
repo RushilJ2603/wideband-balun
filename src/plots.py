@@ -143,8 +143,9 @@ def load_paper(panel):
     return pd.read_csv(f) if f.exists() else None
 
 
-# Back-to-back S-parameters against the paper's Fig. 7 (c) or (d).
-def fig_b2b(name, panel, title, out):
+# Back-to-back S-parameters against the paper's Fig. 7 (c) or (d), with an
+# optional second openEMS curve.
+def fig_b2b(name, panel, title, out, label="this work (openEMS)", extra=None, extra_label=""):
     d = load_sp(name)
     if d is None:
         return
@@ -153,15 +154,18 @@ def fig_b2b(name, panel, title, out):
     if p is not None:
         ax.plot(p.f_GHz, p.paper_sim_s11_dB, color=GREY, lw=1.2, ls="--", label="|S11| paper, simulated (CST)")
         ax.plot(p.f_GHz, p.paper_meas_s11_dB, color=GREY, lw=0.9, label="|S11| paper, measured")
-    ax.plot(d.f_GHz, db(d.s11), color=BLUE, label="|S11| this work (openEMS)")
-    ax.plot(d.f_GHz, db(d.s21), color=ORANGE, label="|S21| this work (openEMS)")
+    e = load_sp(extra) if extra else None
+    if e is not None:
+        ax.plot(e.f_GHz, db(e.s11), color=VIOLET, lw=1.0, label=f"|S11| {extra_label}")
+    ax.plot(d.f_GHz, db(d.s11), color=BLUE, label=f"|S11| {label}")
+    ax.plot(d.f_GHz, db(d.s21), color=ORANGE, label=f"|S21| {label}")
     ax.axhline(-10, color=MUTED, lw=0.7, ls=":")
     ax.set_xlim(0.5, 15)
     ax.set_ylim(-50, 2)
     ax.set_xlabel("frequency (GHz)")
     ax.set_ylabel("magnitude (dB)")
     ax.set_title(title, fontsize=9, loc="left", color=INK)
-    ax.legend(fontsize=7, ncol=2, loc="lower right")
+    ax.legend(fontsize=7, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.2))
     fig.tight_layout()
     save(fig, out)
 
@@ -231,18 +235,18 @@ def fig_fields(name, out, k=0, title=""):
 # Improved design against the paper: back to back, with the paper's own
 # simulated curve, and as a single balun into 188 ohm.
 def fig_compare(out):
-    pb, ib = load_sp("b2b_paper_B"), load_sp("b2b_improved")
-    ps, is_ = load_sp("single_paper_B"), load_sp("single_improved")
+    pb, ib = load_sp("b2b_paper_B_stated"), load_sp("b2b_improved")
+    ps, is_ = load_sp("single_paper_B_stated"), load_sp("single_improved")
     if any(d is None for d in (pb, ib, ps, is_)):
         return
     p = load_paper("fig7d_structure_B")
     fig, (a1, a2) = plt.subplots(2, 1, figsize=(7.2, 5.2), sharex=True)
     if p is not None:
         a1.plot(p.f_GHz, p.paper_sim_s11_dB, color=GREY, lw=1.2, ls="--", label="paper, CST (Fig. 7d)")
-    a1.plot(pb.f_GHz, db(pb.s11), color=ORANGE, label="paper dimensions, openEMS")
+    a1.plot(pb.f_GHz, db(pb.s11), color=ORANGE, label="paper design, openEMS")
     a1.plot(ib.f_GHz, db(ib.s11), color=BLUE, label="improved, openEMS")
     a1.set_title("Back to back, |S11|", fontsize=9, loc="left", color=INK)
-    a2.plot(ps.f_GHz, db(ps.s11), color=ORANGE, label="paper dimensions")
+    a2.plot(ps.f_GHz, db(ps.s11), color=ORANGE, label="paper design")
     a2.plot(is_.f_GHz, db(is_.s11), color=BLUE, label="improved")
     a2.set_title("One balun into 188 Ω, |S11|", fontsize=9, loc="left", color=INK)
     for a in (a1, a2):
@@ -250,7 +254,7 @@ def fig_compare(out):
         a.axvspan(1, 2, color="#f1efe8", lw=0, zorder=0)
         a.set_ylim(-45, 0)
         a.set_ylabel("|S11| (dB)")
-        a.legend(fontsize=7, loc="lower right")
+        a.legend(fontsize=7, loc="lower right", bbox_to_anchor=(1, 1), ncol=3, borderaxespad=0.2)
     a1.text(1.5, -3, "L band", ha="center", fontsize=7, color=MUTED)
     a2.set_xlim(0.5, 15)
     a2.set_xlabel("frequency (GHz)")
@@ -258,17 +262,16 @@ def fig_compare(out):
     save(fig, out)
 
 
-# Impedance along the balun: published outline, the exponential law it
-# was meant to follow, and the improved Klopfenstein profile.
+# Impedance along the balun: the paper's design (Table I impedances), the
+# widths printed in Table I, and the improved Klopfenstein profile.
 def fig_profiles(out):
-    pb, im = RES / "profile_paper_B.csv", RES / "profile_improved.csv"
-    if not (pb.exists() and im.exists()):
+    files = [RES / f"profile_{n}.csv" for n in ("paper_B_stated", "paper_B", "improved")]
+    if not all(f.exists() for f in files):
         return
-    pb, im = pd.read_csv(pb), pd.read_csv(im)
+    st, pb, im = (pd.read_csv(f) for f in files)
     fig, ax = plt.subplots(figsize=(7.2, 2.9))
-    zz = np.linspace(0, 50, 200)
-    ax.plot(zz, 50 * np.exp(np.log(188 / 50) * zz / 50), color=GREY, ls="--", label="exponential law of the paper")
-    ax.plot(pb.z_mm, pb.Z_ohm, color=ORANGE, label="published widths (Table I)")
+    ax.plot(st.z_mm, st.Z_ohm, color=ORANGE, label="paper design, Table I impedances")
+    ax.plot(pb.z_mm, pb.Z_ohm, color=GREY, ls="--", lw=1.0, label="widths as printed in Table I")
     ax.plot(im.z_mm, im.Z_ohm, color=BLUE, label="improved, Klopfenstein")
     ax.set_xlabel("distance from the 50 Ω end, z (mm)")
     ax.set_ylabel("line impedance (Ω)")
@@ -298,7 +301,7 @@ def fig_linemodel(out):
     ax.set_ylim(-45, 0)
     ax.set_xlabel("frequency (GHz)")
     ax.set_ylabel("|S11| (dB)")
-    ax.set_title("Published dimensions, back to back", fontsize=9, loc="left", color=INK)
+    ax.set_title("Widths as printed in Table I, back to back", fontsize=9, loc="left", color=INK)
     ax.legend(fontsize=7, loc="lower right")
     fig.tight_layout()
     save(fig, out)
@@ -306,7 +309,7 @@ def fig_linemodel(out):
 
 # Long and short balanced section between the two baluns.
 def fig_long_short(out):
-    a, b = load_sp("b2b_paper_B"), load_sp("b2b_paper_B_short")
+    a, b = load_sp("b2b_paper_B_stated"), load_sp("b2b_paper_B_stated_short")
     if a is None or b is None:
         return
     fig, ax = plt.subplots(figsize=(7.2, 2.9))
@@ -316,11 +319,11 @@ def fig_long_short(out):
             label="|S11|² + |S21|², 40 mm")
     ax.plot(b.f_GHz, 10 * np.log10(np.abs(b.s11) ** 2 + np.abs(b.s21) ** 2), color=BLUE, ls="--", lw=1,
             label="|S11|² + |S21|², 4 mm")
-    ax.set_xlim(0.5, 15)
-    ax.set_ylim(-4, 0.2)
+    ax.set_xlim(1.5, 15)
+    ax.set_ylim(-1.8, 0.1)
     ax.set_xlabel("frequency (GHz)")
     ax.set_ylabel("dB")
-    ax.legend(fontsize=7, loc="lower left", ncol=2)
+    ax.legend(fontsize=7, loc="lower center", ncol=2)
     fig.tight_layout()
     save(fig, out)
 
@@ -373,21 +376,20 @@ def fig_spiral_pattern(name, out, f_ghz=10.0):
 
 
 if __name__ == "__main__":
-    fig_layout(["paper_A", "paper_B"], ["Structure A", "Structure B"], "fig_layout_paper")
-    fig_layout(["paper_B", "improved"], ["Structure B (paper)", "Improved"], "fig_layout_improved")
+    fig_layout(["paper_A_stated", "paper_B_stated"], ["Structure A", "Structure B"], "fig_layout_paper")
+    fig_layout(["paper_B_stated", "improved"], ["Paper design", "Improved"], "fig_layout_improved")
     fig_profile()
-    fig_fields("b2b_paper_B", "fig_fields_b2b_paper_B", title="Structure B back to back, ")
+    fig_fields("b2b_paper_B_stated", "fig_fields_b2b_paper_B", title="Structure B back to back, ")
     fig_fields("b2b_improved", "fig_fields_b2b_improved_10GHz", k=1, title="Improved back to back, ")
-    fig_balance(["b2b_paper_B", "b2b_improved"], ["paper dimensions", "improved"], "fig_balance")
+    fig_balance(["b2b_paper_B_stated", "b2b_improved"], ["paper design", "improved"], "fig_balance")
     fig_compare("fig_compare")
     fig_profiles("fig_profiles")
     fig_linemodel("fig_linemodel")
     fig_long_short("fig_long_short")
-    fig_spiral_s11(["spiral_paper_B_cascade", "spiral_improved_cascade"],
-                   ["spiral with published balun", "spiral with improved balun"], "fig_spiral_s11", alone="spiral_lumped")
+    fig_spiral_s11(["spiral_paper_B_stated_cascade", "spiral_improved_cascade"],
+                   ["spiral with the paper's balun", "spiral with improved balun"], "fig_spiral_s11",
+                   alone="spiral_lumped")
     fig_spiral_pattern("spiral_lumped", "fig_spiral_pattern_10GHz")
-    fig_spiral_pattern("spiral_lumped", "fig_spiral_pattern_3GHz", f_ghz=3.0)
-    fig_b2b("b2b_paper_B", "fig7d_structure_B", "Structure B, back to back", "fig_b2b_paper_B")
-    fig_b2b("b2b_paper_A", "fig7c_structure_A", "Structure A, back to back", "fig_b2b_paper_A")
-    fig_b2b("b2b_paper_B_smooth", "fig7d_structure_B", "Structure B with smooth edges, back to back",
-            "fig_b2b_paper_B_smooth")
+    fig_b2b("b2b_paper_B_stated", "fig7d_structure_B", "Structure B, back to back", "fig_b2b_paper_B",
+            extra="b2b_paper_B", extra_label="widths as printed in Table I")
+    fig_b2b("b2b_paper_A_stated", "fig7c_structure_A", "Structure A, back to back", "fig_b2b_paper_A")

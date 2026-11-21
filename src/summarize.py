@@ -26,8 +26,8 @@ import pandas as pd
 
 from plots import RES, db, load_sp, currents
 
-RUNS = ["b2b_paper_B", "b2b_paper_A", "b2b_paper_B_smooth", "b2b_paper_B_short", "b2b_improved",
-        "single_paper_B", "single_improved"]
+RUNS = ["b2b_paper_B", "b2b_paper_B_stated", "b2b_paper_A_stated", "b2b_paper_B_stated_short", "b2b_improved",
+        "single_paper_B_stated", "single_improved"]
 
 
 def lower_edge(f, s11, level=-10.0, fmax=15.0):
