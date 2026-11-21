@@ -1,0 +1,6 @@
+run,plane,front_dir,front_dB,front_width,back_dir,back_dB,back_width,rms_dB
+paper,paper Fig. 11,24,0.0,66.8,214,-0.0,82.6,0.0
+paper,E,6,-1.1,52.1,177,0.0,64.5,3.74
+paper,H,5,-1.1,66.9,178,-0.0,76.3,2.36
+improved,E,4,-0.9,51.5,178,0.0,64.3,3.7
+improved,H,2,-1.0,64.0,180,0.0,78.3,2.33

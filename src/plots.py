@@ -15,6 +15,7 @@ from matplotlib.patches import Polygon
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "results"
 GEO = ROOT / "geometry"
+PAPER = ROOT / "data" / "paper"
 FIG = RES / "figures"
 
 BLUE, ORANGE, AQUA, VIOLET = "#2a78d6", "#eb6834", "#1baf7a", "#6250d6"
@@ -84,7 +85,7 @@ def band_edges(f, s11, level=-10.0):
 
 
 # Layout of the back-to-back boards (cf. Fig. 7(a), 7(b) of the paper).
-def fig_layout(names, labels, out, board=30.0, ext=0.0):
+def fig_layout(names, labels, out, board=18.0, ext=0.0):
     fig, axes = plt.subplots(len(names), 2, figsize=(7.2, 1.25 * len(names) + 0.4))
     axes = np.atleast_2d(axes)
     for r, (name, lab) in enumerate(zip(names, labels)):
@@ -102,7 +103,7 @@ def fig_layout(names, labels, out, board=30.0, ext=0.0):
             ax.set_ylim(-board / 2 - 1, board / 2 + 1)
             ax.set_aspect("equal")
             ax.grid(False)
-            ax.set_yticks([-15, 0, 15])
+            ax.set_yticks([-9, 0, 9])
             ax.set_title(f"{lab}, {side} face", fontsize=8, color=INK, loc="left")
             if r == len(names) - 1:
                 ax.set_xlabel("x (mm)")
@@ -215,14 +216,14 @@ def fig_fields(name, out, k=0, title=""):
     F = load_fields(name)
     if F is None:
         return
-    fig, axes = plt.subplots(2, 1, figsize=(7.2, 3.4), sharex=True)
+    fig, axes = plt.subplots(2, 1, figsize=(7.2, 2.7), sharex=True)
     hmax = max(F[f"top_H{k}"].max(), F[f"bot_H{k}"].max())
     for ax, side, lab in zip(axes, ("top", "bot"), ("top face", "bottom face")):
         x, y, H = F[f"{side}_x"], F[f"{side}_y"], F[f"{side}_H{k}"]
         Hn = 20 * np.log10(H / hmax + 1e-12)
         im = ax.pcolormesh(x, y, Hn.T, cmap="viridis", vmin=-30, vmax=0, shading="nearest")
         ax.set_aspect("equal")
-        ax.set_ylim(-15, 15)
+        ax.set_ylim(-9.5, 9.5)
         ax.grid(False)
         ax.set_ylabel("y (mm)")
         ax.set_title(f"{title}{lab}, |H| at {F['freq'][k] / 1e9:g} GHz", fontsize=8, loc="left", color=INK)
@@ -356,21 +357,28 @@ def fig_spiral_s11(names, labels, out, alone=None):
 
 # Normalised far field in the two principal planes at one frequency.
 def fig_spiral_pattern(name, out, f_ghz=10.0):
+    """Both cuts at f_ghz over the simulated pattern of Fig. 11 of the
+    paper, with the angle counted anticlockwise as in that figure."""
     f = RES / f"{name}_patterns.csv"
     if not f.exists():
         return
     d = pd.read_csv(f)
     d = d[np.isclose(d.f_GHz, f_ghz)]
-    fig, ax = plt.subplots(figsize=(4.2, 4.2), subplot_kw={"projection": "polar"})
+    fig, ax = plt.subplots(figsize=(4.4, 4.6), subplot_kw={"projection": "polar"})
+    p = PAPER / "fig11_pattern_10GHz.csv"
+    if p.exists() and np.isclose(f_ghz, 10):
+        q = pd.read_csv(p)
+        ax.plot(np.radians(q.angle_deg), np.clip(q.paper_sim_dB, -30, 0), color=GREY, lw=2.2,
+                label="paper, Fig. 11 (CST)")
     for plane, col, lab in (("E", BLUE, "xz plane (E)"), ("H", ORANGE, "yz plane (H)")):
         c = d[d.plane == plane]
-        ax.plot(np.radians(c.theta_deg), np.clip(c.E_dB, -30, 0), color=col, label=lab)
+        ax.plot(np.radians(c.theta_deg), np.clip(c.E_dB, -30, 0), color=col, lw=1.3, label=lab)
     ax.set_theta_zero_location("N")
-    ax.set_theta_direction(-1)
+    ax.set_theta_direction(1)
     ax.set_rlim(-30, 0)
     ax.set_rticks([-30, -20, -10, 0])
     ax.set_title(f"{f_ghz:g} GHz, normalised |E| (dB)", fontsize=9, color=INK)
-    ax.legend(fontsize=7, loc="lower center", bbox_to_anchor=(0.5, -0.18), ncol=2)
+    ax.legend(fontsize=7, loc="lower center", bbox_to_anchor=(0.5, -0.22), ncol=3)
     fig.tight_layout()
     save(fig, out)
 
@@ -386,10 +394,9 @@ if __name__ == "__main__":
     fig_profiles("fig_profiles")
     fig_linemodel("fig_linemodel")
     fig_long_short("fig_long_short")
-    fig_spiral_s11(["spiral_paper_B_stated_cascade", "spiral_improved_cascade"],
-                   ["spiral with the paper's balun", "spiral with improved balun"], "fig_spiral_s11",
-                   alone="spiral_lumped")
-    fig_spiral_pattern("spiral_lumped", "fig_spiral_pattern_10GHz")
+    fig_spiral_s11(["spiral_full", "spiral_full_improved"],
+                   ["antenna with the paper's balun", "antenna with the improved balun"], "fig_spiral_s11")
+    fig_spiral_pattern("spiral_full", "fig_spiral_pattern_10GHz")
     fig_b2b("b2b_paper_B_stated", "fig7d_structure_B", "Structure B, back to back", "fig_b2b_paper_B",
             extra="b2b_paper_B", extra_label="widths as printed in Table I")
     fig_b2b("b2b_paper_A_stated", "fig7c_structure_A", "Structure A, back to back", "fig_b2b_paper_A")

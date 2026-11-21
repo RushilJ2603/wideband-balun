@@ -18,6 +18,19 @@
 %   r1      inner radius and arm width in mm (default 0.86)
 %   board   spiral board side in mm (default 60)
 %   nf2ff_f frequencies in Hz for far-field patterns
+%   fine    true for a mesh graded towards the centre of the spiral: 0.1 mm
+%           within 1.5 mm of the axis, 0.15 mm within 6 mm, 0.2 mm within
+%           12 mm and 0.3 mm beyond, with 0.15 mm along the top 3 mm of
+%           the balun (default false: 0.25 mm across the spiral)
+%   lossless true for loss-free substrates (default false)
+%   port    with the balun feed, 'msl' (default) for a microstrip port on a
+%           10 mm extension at the bottom of the balun, or 'lumped' for a
+%           50 ohm lumped port across the bottom edge, which keeps the
+%           whole antenna inside the far-field box
+%   air     air between the boards and the outer boundary in mm (default
+%           25); the absorbing layer takes the outer 8 cells of it
+%   balun_board  width of the balun substrate in mm (default 6 mm wider
+%           than its widest conductor); the paper gives 18 mm
 
 function build_spiral(name, geomfile, opts)
 if nargin < 3, opts = struct(); end
@@ -26,16 +39,26 @@ opts = set_default(opts, 'r1', 0.86);
 opts = set_default(opts, 'board', 60);
 opts = set_default(opts, 'nf2ff_f', [2 2.5 3 4 5 6 10 15]*1e9);
 opts = set_default(opts, 'feed', 'balun');
+opts = set_default(opts, 'fine', false);
+opts = set_default(opts, 'lossless', false);
+opts = set_default(opts, 'port', 'msl');
+opts = set_default(opts, 'air', 25);
+opts = set_default(opts, 'balun_board', []);
 lumped = strcmp(opts.feed, 'lumped');
+edge_port = ~lumped && strcmp(opts.port, 'lumped');
 
 setup_paths();
 p = balun_params();
+if opts.lossless
+    p.tand = 0;
+end
 g = readmatrix(geomfile);
 zb = g(:, 1); w = g(:, 2); wb = g(:, 3);
 L = zb(end);
 h = p.h;
 ext = 10;
-air = 25;
+if edge_port, ext = 0; end
+air = opts.air;
 unit = 1e-3;
 
 FDTD = InitFDTD('NrTS', 400000, 'EndCriteria', 1e-4);
@@ -67,10 +90,12 @@ CSX = add_substrate(CSX, p, [-opts.board/2 -opts.board/2 0], [opts.board/2 opts.
 % Balun board under the spiral. Its outline is given from the 50 ohm end,
 % so the balun coordinate zb maps to z = zb - L.
 zz = [-ext; zb] - L;
+if ext == 0, zz = zb - L; end
 we = w(end);
 if ~lumped
 ww = [p.w50; w];
 wwb = [wb(1); wb];
+if ext == 0, ww = w; wwb = wb; end
 topst = [zz' fliplr(zz'); ww'/2 fliplr(-ww'/2)];
 botst = [zz' fliplr(zz'); wwb'/2 fliplr(-wwb'/2)];
 CSX = AddConductingSheet(CSX, 'balun', p.sigma_cu, p.t_cu*1e-3);
@@ -78,6 +103,7 @@ CSX = AddConductingSheet(CSX, 'balun', p.sigma_cu, p.t_cu*1e-3);
 CSX = AddPolygon(CSX, 'balun', 10, 0, h/2, topst([2 1], :));
 CSX = AddPolygon(CSX, 'balun', 10, 0, -h/2, botst([2 1], :));
 bw = max(wb) + 6;
+if ~isempty(opts.balun_board), bw = opts.balun_board; end
 CSX = AddMaterial(CSX, 'balun_sub');
 eps0 = 8.854187817e-12;
 CSX = SetMaterialProperty(CSX, 'balun_sub', 'Epsilon', p.er, 'Kappa', 2*pi*10e9*eps0*p.er*p.tand);
@@ -93,15 +119,26 @@ end
 
 % Mesh
 half = opts.board/2;
-fx = [-h/2 h/2 0 r1 -r1 2*r1 -2*r1 [1 -1]*half [1 -1]*(half + air)];
-mesh.x = mesh_axis(fx, [-half half 0.25; -h/2 h/2 h/6], 2.5, 1.3);
+rx = [-half half 0.25; -h/2 h/2 h/6];
+ry = [-half half 0.25];
+rz = [-L-ext 0 0.45];
+if opts.fine
+    rc = [-half half 0.3; -12 12 0.2; -6 6 0.15; -1.5 1.5 0.1];
+    rx = [rc; -h/2 h/2 h/6];
+    ry = rc;
+    rz = [-L-ext 0 0.6; -3 0 0.15];
+end
+fx = [-h/2 h/2 0 r1 -r1 2*r1 -2*r1 [1 -1]*1.5*r1 [1 -1]*half [1 -1]*(half + air)];
+mesh.x = mesh_axis(fx, rx, 2.5, 1.3);
 fy = [0 [1 -1]*we/2 [1 -1]*p.w50/2 [1 -1]*wb(1)/2 [1 -1]*half [1 -1]*(half + air)];
-mesh.y = mesh_axis(fy, [-half half 0.25], 2.5, 1.3);
+mesh.y = mesh_axis(fy, ry, 2.5, 1.3);
 if lumped
     mesh.z = mesh_axis([h 0 h/2 -air h+air], [0 h h/6], 2.5, 1.3);
 else
-    fz = [h 0 h/2 zz' -L-ext-air/2 h+air];
-    mesh.z = mesh_axis(fz, [0 h h/6; -L-ext 0 0.45], 2.5, 1.3);
+    zlo = -L-ext-air/2;
+    if edge_port, zlo = -L-air; end
+    fz = [h 0 h/2 zz' zlo h+air];
+    mesh.z = mesh_axis(fz, [0 h h/6; rz], 2.5, 1.3);
 end
 CSX = DefineRectGrid(CSX, unit, mesh);
 
@@ -114,6 +151,9 @@ CSX = DefineRectGrid(CSX, unit, mesh);
 if lumped
     [CSX, port] = AddLumpedPort(CSX, 999, 1, 188, [-r1 -r1/2 h], [r1 r1/2 h], [1 0 0], true);
     zref = 188;
+elseif edge_port
+    [CSX, port] = AddLumpedPort(CSX, 999, 1, 50, [-h/2 -p.w50/2 -L], [h/2 p.w50/2 -L], [1 0 0], true);
+    zref = 50;
 else
     CSX = AddMetal(CSX, 'PEC');
     [CSX, port] = AddMSLPort(CSX, 999, 1, 'PEC', [h/2 -p.w50/2 -L-ext], [-h/2 p.w50/2 -L], 'z', [-1 0 0], ...

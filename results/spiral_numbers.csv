@@ -1,3 +1,3 @@
-balun,lo_GHz,range,share_2p5_15,worst_2p5_15,reciprocity_dB
-paper,1.59,1.59 to 15 GHz,1.0,-10.0,0.25
-improved,1.61,1.61 to 15 GHz,1.0,-11.1,0.26
+balun,lo_GHz,gaps_2p5_15,share_2p5_15,worst_2p5_15
+paper,1.75,13.65 to 13.90 GHz (-9.4 dB),0.976,-9.4
+improved,1.61,none,1.0,-10.2

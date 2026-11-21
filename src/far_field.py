@@ -7,7 +7,13 @@ far-field tool from the run folder) and writes
   results/<name>_hpbw.csv       half-power beamwidth in each plane around
                                 broadside above the spiral (theta = 0), of
                                 the total field and of E_theta and E_phi
-                                alone
+                                alone, and of the total field around
+                                broadside below it (theta = 180, the side
+                                of the balun), columns *_back, and the
+                                width of the main lobe wherever it points,
+                                as CST reports it (3 dB below the maximum
+                                of the cut), columns *_main, with the
+                                direction of that maximum in *_dir
 
 The xz plane contains the balanced feed and is called the E-plane, the yz
 plane the H-plane. Needs h5py.
@@ -65,6 +71,38 @@ def hpbw(th, g_db):
     return tr - tl
 
 
+def main_lobe(th, g):
+    """Direction of the maximum of a full cut and the width of the lobe
+    around it, 3 dB below that maximum."""
+    if np.isclose(th[0] + 360, th[-1]):
+        th, g = th[:-1], g[:-1]
+    n = len(g)
+    i = int(np.argmax(g))
+    ref = g[i] - 3
+
+    def edge(step):
+        k = i
+        while g[(k + step) % n] >= ref and abs(k - i) < n:
+            k += step
+        a, b = k % n, (k + step) % n
+        ta, tb = th[a], th[b]
+        if abs(tb - ta) > 180:
+            tb += 360 * np.sign(ta - tb)
+        return ta + (tb - ta) * (g[a] - ref) / (g[a] - g[b])
+
+    w = edge(1) - edge(-1)
+    return th[i], w % 360
+
+
+def back(th, g):
+    """The same cut with theta = 180 moved to the centre."""
+    t = (th + 360) % 360 - 180
+    k = np.argsort(t)
+    t, g = t[k], g[k]
+    keep = np.r_[True, np.diff(t) > 1e-9]
+    return t[keep], g[keep]
+
+
 def process(name):
     freq, dmax, theta, phi, E = read(name)
     rows, bw = [], []
@@ -77,6 +115,11 @@ def process(name):
                 if tag == "":
                     rows += [dict(f_GHz=fr / 1e9, plane=plane, theta_deg=t, E_dB=round(v, 2)) for t, v in zip(th, g)]
                 row[f"hpbw_{plane}{tag}_deg"] = round(hpbw(th, g), 1)
+                if tag == "":
+                    row[f"hpbw_{plane}_back_deg"] = round(hpbw(*back(th, g)), 1)
+                    d, w = main_lobe(th, g)
+                    row[f"hpbw_{plane}_main_deg"] = round(w, 1)
+                    row[f"hpbw_{plane}_dir_deg"] = round(d, 0)
         row["Dmax_dBi"] = round(10 * np.log10(dmax[k]), 2)
         bw.append(row)
     pd.DataFrame(rows).to_csv(RES / f"{name}_patterns.csv", index=False)

@@ -14,10 +14,13 @@
 %   zload     resistance of that lumped port in ohm (default 188)
 %   excite    port that is driven, 1 (default) or 2; 2 is used with mode
 %             'single' to get the reflection seen from the balanced end
-%   board     substrate width in mm (default 30)
+%   board     substrate width in mm (default 18, the 70 mm x 18 mm board
+%             of the paper)
 %   ext       50 ohm line added outside each end for the ports (default 10)
 %   lossless  true to use PEC and a loss-free substrate (default false)
 %   dump_f    frequencies in Hz for field dumps (default 2.5e9)
+%   refine    factor by which every cell is made smaller, for a mesh
+%             convergence check (default 1)
 %
 % The model and port data go to a folder from sim_dir(name). The solver is
 % then run on model.xml in that folder, and post_balun(name) reads the
@@ -27,7 +30,8 @@ function build_balun(name, geomfile, opts)
 if nargin < 3, opts = struct(); end
 opts = set_default(opts, 'mode', 'b2b');
 opts = set_default(opts, 'zload', 188);
-opts = set_default(opts, 'board', 30);
+opts = set_default(opts, 'board', 18);
+opts = set_default(opts, 'refine', 1);
 opts = set_default(opts, 'ext', 10);
 opts = set_default(opts, 'lossless', false);
 opts = set_default(opts, 'dump_f', 2.5e9);
@@ -90,13 +94,14 @@ CSX = add_substrate(CSX, p, [-L-ext -opts.board/2 0], [xend opts.board/2 h]);
 edges_y = unique(abs([p.w50/2 wb(1)/2 w(end)/2 wb(end)/2]));
 fy = [0 edges_y -edges_y [1 -1]*opts.board/2 [1 -1]*(opts.board/2 + air)];
 wmax = max(wb)/2 + 0.5;
-mesh.y = mesh_axis(fy, [-1.4 1.4 0.08; -2.6 2.6 0.15; -wmax wmax 0.3], 2.0, 1.3);
+k = opts.refine;
+mesh.y = mesh_axis(fy, [-1.4 1.4 0.08/k; -2.6 2.6 0.15/k; -wmax wmax 0.3/k], 2.0/k, 1.3);
 if single
-    mesh.x = mesh_axis([xt' -5 air], [-1 1 0.1], 0.4, 1.3);
+    mesh.x = mesh_axis([xt' -5 air], [-1 1 0.1/k], 0.4/k, 1.3);
 else
-    mesh.x = mesh_axis([xt' 0], zeros(0, 3), 0.4, 1.3);
+    mesh.x = mesh_axis([xt' 0], zeros(0, 3), 0.4/k, 1.3);
 end
-mesh.z = mesh_axis([0 h/2 h -air h+air], [0 h h/6], 1.5, 1.3);
+mesh.z = mesh_axis([0 h/2 h -air h+air], [0 h h/(6*k)], 1.5/k, 1.3);
 CSX = DefineRectGrid(CSX, unit, mesh);
 
 % Microstrip port on the 50 ohm extension, reference plane at x = -L.

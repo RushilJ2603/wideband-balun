@@ -12,4 +12,6 @@ build_balun('single_paper_B_stated_p2', geo('paper_B_stated'), struct('mode', 's
 build_balun('b2b_improved', geo('improved'), struct('dump_f', [2.5e9 10e9]));
 build_balun('single_improved', geo('improved'), struct('mode', 'single'));
 build_balun('single_improved_p2', geo('improved'), struct('mode', 'single', 'excite', 2));
+% Mesh check: the paper design back to back with every cell 1.5 times smaller.
+build_balun('b2b_paper_B_stated_fine', geo('paper_B_stated'), struct('refine', 1.5));
 end
