@@ -50,6 +50,7 @@ So the target was 10/10: reproduce every result of the base paper, then improve 
 | Submission copies | `RFCC/Project/submission/`: `Wideband_Balun_Report.doc`, `.docx`, `.pdf`, `Wideband_Balun_Slides.pptx`, `.pdf` | the `.doc` was made by saving the `.docx` from Word |
 | Code, geometry, results | repository `wideband-balun` | public GitHub repository `RushilJ2603/wideband-balun`, branch `main` |
 | Live demo | `run_demo.py` (opens MATLAB) and `src/balun_demo.m` (window of buttons) | Section 31 |
+| Presentation and viva notes | `VIVA_PREP.md` | 5-minute presentation plan, demo order, answers to likely questions |
 | This guide | `teaching.md` | in the repository |
 
 The base paper is open access as the accepted version on QUT ePrints (eprints.qut.edu.au/48500). The PDF itself is not in the repository.

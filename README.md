@@ -73,6 +73,8 @@ MATLAB R2025b reads the openEMS probe files only with `load -ascii`, so `src/Rea
 
 ```
 teaching.md study guide: background theory, the paper, every simulation and result, the improvement, the demo
+VIVA_PREP.md 5-minute presentation plan, demo order, answers to likely questions
+report/     also holds Wideband_Balun_Report.doc, the copy for submission
 run_demo.py opens the demo in MATLAB
 src/        openEMS models (MATLAB), cross-section solver, line model, synthesis, figures (Python)
 geometry/   outline of every simulated structure: z, top width, bottom width (mm)
