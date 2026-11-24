@@ -29,6 +29,16 @@ The improved balun uses 60 of its 70 mm for a Klopfenstein taper (ripple 0.12, A
 
 ![Impedance profiles](results/figures/fig_profiles.png)
 
+## Demo
+
+```
+python run_demo.py
+```
+
+This checks that openEMS and the result files are in place, then opens MATLAB with a window of buttons (`src/balun_demo.m`). One button opens the openEMS model of the improved balun with its mesh in AppCSXCAD. Two buttons build a coarse copy of the improved or the paper design (0.7 million cells instead of 3.1 million), run openEMS on it (about 3 minutes on 16 threads) and plot it over the saved full run. If the solver does not finish, the saved copy of the same coarse run in `results/` is plotted instead. The other buttons plot saved results: the 3D model, the paper comparison, a three-mesh check, Table I, current balance, the field in three cross-sections, the pulse moving through the balun, the spiral antenna, the impedance profiles and the effect of each change made to the paper design.
+
+The runs behind the demo are written by `matlab -batch "build_demo"` after `python3 change_steps.py`; `export_movie.py` turns the time-domain dump of `movie_improved` into `results/movie_improved.mat`.
+
 ## Reproducing
 
 Requirements: openEMS 0.37 (Windows build, in `C:\openEMS` or at `OPENEMS_DIR`), MATLAB, Python 3 with numpy, scipy, pandas, matplotlib, and h5py for the field and far-field files.
@@ -62,6 +72,7 @@ MATLAB R2025b reads the openEMS probe files only with `load -ascii`, so `src/Rea
 ## Layout
 
 ```
+run_demo.py opens the demo in MATLAB
 src/        openEMS models (MATLAB), cross-section solver, line model, synthesis, figures (Python)
 geometry/   outline of every simulated structure: z, top width, bottom width (mm)
 data/paper/ S11 curves of Figs. 7 and 10 and the 10 GHz pattern of Fig. 11, digitised from the paper

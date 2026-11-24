@@ -21,6 +21,8 @@
 %   dump_f    frequencies in Hz for field dumps (default 2.5e9)
 %   refine    factor by which every cell is made smaller, for a mesh
 %             convergence check (default 1)
+%   movie     true to also record Ez in the middle of the substrate against
+%             time and E at 5 GHz in three cross-sections (default false)
 %
 % The model and port data go to a folder from sim_dir(name). The solver is
 % then run on model.xml in that folder, and post_balun(name) reads the
@@ -36,6 +38,7 @@ opts = set_default(opts, 'ext', 10);
 opts = set_default(opts, 'lossless', false);
 opts = set_default(opts, 'dump_f', 2.5e9);
 opts = set_default(opts, 'excite', 1);
+opts = set_default(opts, 'movie', false);
 single = strcmp(opts.mode, 'single');
 
 setup_paths();
@@ -104,10 +107,12 @@ end
 mesh.z = mesh_axis([0 h/2 h -air h+air], [0 h h/(6*k)], 1.5/k, 1.3);
 CSX = DefineRectGrid(CSX, unit, mesh);
 
-% Microstrip port on the 50 ohm extension, reference plane at x = -L.
+% Microstrip port on the 50 ohm extension, reference plane at x = -L. The
+% feed stays clear of the 8 absorbing cells at the end of the line.
 CSX = AddMetal(CSX, 'PEC');
+feed = max(4, 1.2*8*0.4/k);
 [CSX, port{1}] = AddMSLPort(CSX, 999, 1, 'PEC', [-L-ext -p.w50/2 h], [-L p.w50/2 0], 'x', [0 0 -1], ...
-    'ExcitePort', opts.excite == 1, 'FeedShift', 4, 'MeasPlaneShift', ext);
+    'ExcitePort', opts.excite == 1, 'FeedShift', feed, 'MeasPlaneShift', ext);
 if single
     % Lumped port across the substrate at the balanced end, between the
     % ends of the two strips.
@@ -137,6 +142,18 @@ CSX = AddDump(CSX, 'Hf_top', 'DumpType', 11, 'Frequency', opts.dump_f, 'FileType
 CSX = AddBox(CSX, 'Hf_top', 0, [-L-ext -opts.board/2 ztop], [xend opts.board/2 ztop]);
 CSX = AddDump(CSX, 'Hf_bot', 'DumpType', 11, 'Frequency', opts.dump_f, 'FileType', 1);
 CSX = AddBox(CSX, 'Hf_bot', 0, [-L-ext -opts.board/2 zbot], [xend opts.board/2 zbot]);
+
+if opts.movie
+    CSX = AddDump(CSX, 'Et_mid', 'DumpType', 0, 'FileType', 1, 'SubSampling', '2,2,1');
+    CSX = AddBox(CSX, 'Et_mid', 0, [-L-ext -opts.board/2 zmid], [xend opts.board/2 zmid]);
+    % Cross-sections on the 50 ohm line, in the taper and on the parallel strip.
+    zs = [2.5 35 67.5];
+    for n = 1:3
+        d = sprintf('Ef_x%d', n);
+        CSX = AddDump(CSX, d, 'DumpType', 10, 'Frequency', 5e9, 'FileType', 1);
+        CSX = AddBox(CSX, d, 0, [zs(n)-L -12 -6], [zs(n)-L 12 h+6]);
+    end
+end
 
 sim = sim_dir(name);
 WriteOpenEMS(fullfile(sim, 'model.xml'), FDTD, CSX);

@@ -1,0 +1,6 @@
+run,refine,cells_M,solve_s
+live_improved,0.6,0.706,158
+live_paper,0.6,0.670,191
+b2b_improved,1,3.083,
+b2b_paper_B_stated,1,2.840,
+b2b_paper_B_stated_fine,1.5,6.733,
