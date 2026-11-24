@@ -6,28 +6,21 @@ A balun joins an unbalanced 50 Ω line to a balanced 188 Ω load (a self-complem
 
 ## D-day: 5-minute presentation
 
-**Before your turn** (not part of the 5 minutes):
+**Before your turn:** laptop on the charger. Run `python3 run_demo.py` in the project folder (WSL) or `python run_demo.py` (Windows). The "Wideband balun" window appears in 15 to 30 s. Press **Model and mesh in openEMS** once and close it, so it opens fast later.
 
-1. Laptop on the charger, other heavy programs closed.
-2. Start the demo: in WSL `cd "/mnt/c/Users/jishu/Desktop/sem 5/RFCC/Project/wideband-balun" && python3 run_demo.py`, or in Windows PowerShell `cd "C:\Users\jishu\Desktop\sem 5\RFCC\Project\wideband-balun"; python run_demo.py`. It should print "all present"; the "Wideband balun" window appears in 15 to 30 s.
-3. Open `slides/Wideband_Balun.pptx` in PowerPoint, ready on slide 1.
+No live solving in the 5 minutes. Every button below opens at once, from finished openEMS runs. Do not press the two "Run simulation" buttons unless he asks to see the solver run (they take about 3 minutes).
 
-**While the live run is solving (about 2 minutes 45 seconds) MATLAB is busy and its windows do not respond.** Do not click in MATLAB during that time, because the clicks are queued and all run afterwards. Use PowerPoint for that part; it is not affected.
+| time | press | what to say |
+|---|---|---|
+| 0:00 to 0:40 | **3D model** | A balun joins the unbalanced 50 Ω line to the balanced 188 Ω spiral antenna. Base paper: Vinayagamoorthy et al., IEEE VTC 2012, tapered microstrip to parallel strip, 1.75 to 15 GHz. The ground narrows until it is as wide as the strip. |
+| 0:40 to 1:15 | **Model and mesh in openEMS** | This is the model the solver ran: 3.08 million cells, 0.08 mm cells at the strip edges, copper and substrate losses, absorbing boundaries. |
+| 1:15 to 1:50 | **Pulse moving through the balun**, press Play | openEMS result: the pulse enters as microstrip, squeezes into the narrow strips, comes out balanced. |
+| 1:50 to 2:20 | **E field in the cross-section** | Left: field from strip down to a wide ground. Right: symmetric between two equal strips. That is the balun's job. |
+| 2:20 to 3:10 | **Structure B against the paper**, then **Table I as printed** | 1.78 to 15 GHz against the paper's 1.75, \|S21\| never below −0.98 dB. Two rows of the paper's Table I give the wrong impedance; built as printed they add two peaks near 6 GHz, so we built to the impedances the paper states. |
+| 3:10 to 4:30 | **What each change did**, then **Paper design against improved** | Goal: the whole L band from 1 GHz on the same 70 × 18 mm board. Taper 45 to 60 mm, because the paper wasted 20 mm on parallel strip. Exponential to Klopfenstein, the lowest cutoff for a given length. Alone: 1.04 and 1.14 GHz. Together: one balun from 0.95 GHz, back to back from 1.17 GHz. |
+| 4:30 to 5:00 | say it | Every paper result reproduced in openEMS, an error found in its Table I, and an improved balun covering L, S, C and X bands with better balance and lower loss. Simulation only; fabrication is next. |
 
-| time | where | what to show | what to say |
-|---|---|---|---|
-| 0:00 | MATLAB | press **Run simulation: improved (3 min)**, then switch to PowerPoint (Alt+Tab, F5) | "openEMS is now solving our improved balun live, on a coarse mesh. It finishes in under three minutes." |
-| 0:05 to 0:35 | slides 1, 2 | title, why a wideband balun | A balun joins the unbalanced 50 Ω line to the balanced 188 Ω spiral antenna (η0/2). Base paper: Vinayagamoorthy et al., IEEE VTC 2012, a tapered microstrip to parallel strip balun, 1.75 to 15 GHz back to back. |
-| 0:35 to 1:05 | slide 3 | how it works | The ground narrows until it is as wide as the strip: microstrip becomes parallel strip, 50 Ω becomes 188 Ω. A taper has no resonant length, so it is wideband. Back to back, the two reflections can add, so that test is strict. |
-| 1:05 to 1:30 | slide 4 | tools | openEMS (FDTD), our own cross-section solver (within 1.2 % of Hammerstad-Jensen), a line model. Setup checked on a plain 50 Ω line. |
-| 1:30 to 2:00 | slide 5 | Table I check | Two rows of the paper's Table I give the wrong impedance (132.5 Ω instead of 110, 139.9 instead of 150), and 0.88 mm is 178 Ω, not 188. We built the balun to the impedances the paper states. |
-| 2:00 to 2:40 | slides 6, 10 | structure B, summary | 1.78 to 15 GHz against the paper's 1.75; \|S21\| never below −0.98 dB; balance 180° ± 8.8°; field symmetric; structure A worse, as in the paper; the spiral antenna and its 10 GHz pattern match. If the live graph is not up yet, go on to slide 11. |
-| about 2:45 | MATLAB | the live graph appears by itself | "That run just finished: 0.7 million cells, band from 1.16 GHz, against 1.17 GHz for the full 3 million cell run in grey." |
-| 3:00 to 4:00 | MATLAB | **What each change did**, then **Paper design against improved** | Goal: the whole L band from 1 GHz on the same 70 × 18 mm board. Change 1: taper 45 to 60 mm, because the paper wasted 20 mm on parallel strip. Change 2: exponential to Klopfenstein, the lowest cutoff for a given length, ripple 0.12. Alone they give 1.04 and 1.14 GHz; together one balun is matched from 0.95 GHz, back to back from 1.17 GHz. |
-| 4:00 to 4:35 | MATLAB | **Pulse moving through the balun** (press Play) or **Mesh check** | The pulse squeezes into the narrow strips and comes out balanced. Mesh check: 0.7, 2.8 and 6.7 million cells all give 1.77 to 1.78 GHz. |
-| 4:35 to 5:00 | say it | conclusion | Every result of the paper reproduced in openEMS, an error found in its Table I, and an improved balun that covers the L, S, C and X bands with better balance and lower loss. All simulation; fabrication is the next step. |
-
-A possible split between two speakers: one takes 0:00 to 2:45 (paper and validation), the other 2:45 to 5:00 (live result and improvement). If the solver fails, the saved coarse run appears on its own with "saved coarse run" in the title; say it is the saved copy of the same run.
+If he asks about the mesh: **Mesh check** (0.7, 2.8 and 6.7 million cells all give 1.77 to 1.78 GHz). Balance: **Current balance**. Antenna: **Spiral antenna, S11** and **pattern**. A possible split: one speaker up to 2:20, the other from 2:20.
 
 ## Live demo
 
