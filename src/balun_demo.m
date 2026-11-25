@@ -13,7 +13,6 @@
 %                           the saved copy in results/ is plotted.
 %   balun_demo('paper')     structure B against Fig. 7(d) of the paper
 %   balun_demo('mesh')      paper design on three meshes
-%   balun_demo('table1')    effect of the two inconsistent rows of Table I
 %   balun_demo('steps')     taper length and profile changed one at a time
 %   balun_demo('improved')  paper design against improved design
 %   balun_demo('balance')   phase and amplitude of the strip currents
@@ -36,7 +35,6 @@ switch view
     case 'run',      h = run_live(varargin{:});
     case 'last',     h = last_run(varargin{:});
     case 'paper',    h = show_paper();
-    case 'table1',   h = show_table1();
     case 'steps',    h = show_steps();
     case 'improved', h = show_improved();
     case 'balance',  h = show_balance();
@@ -62,7 +60,6 @@ items = {
     'Validation', '';
     'Structure B against the paper', 'paper';
     'Mesh check', 'mesh';
-    'Table I as printed', 'table1';
     'Current balance', 'balance';
     'Spiral antenna, S11', 'spiral';
     'Spiral antenna, pattern', 'pattern';
@@ -306,26 +303,6 @@ plot(ax, P.f_GHz, P.paper_meas_s11_dB, 'Color', [0.65 0.65 0.65], 'LineWidth', 1
 plot(ax, f, s11, 'Color', c.improved, 'LineWidth', 2.4, 'DisplayName', '|S11| this work, openEMS');
 plot(ax, f, s21, 'Color', c.paper, 'LineWidth', 2.2, 'DisplayName', '|S21| this work, openEMS');
 finish_s(ax, sprintf('Structure B back to back: below -10 dB from %.2f to 15 GHz (paper 1.75 to 15 GHz)', lower_edge(f, s11)));
-end
-
-function fig = show_table1()
-T = readtable(res('table1_check'));
-[f, a] = sp('b2b_paper_B');
-[~, b] = sp('b2b_paper_B_stated');
-c = palette();
-fig = new_figure('Table I as printed', [110 110 1250 540]);
-t = tiledlayout(fig, 1, 2, 'Padding', 'compact');
-ax = nexttile(t); hold(ax, 'on');
-zz = linspace(5, 50, 100);
-plot(ax, zz, 50*(188/50).^(zz/50), '--', 'Color', [0.45 0.45 0.45], 'LineWidth', 1.5, 'DisplayName', 'law of the stated values');
-plot(ax, T.z_mm, T.Z_target, 'o', 'Color', c.improved, 'MarkerFaceColor', c.improved, 'DisplayName', 'stated in Table I');
-plot(ax, T.z_mm, T.Z_solver, 's-', 'Color', c.paper, 'LineWidth', 1.8, 'DisplayName', 'computed from the printed widths');
-xlabel(ax, 'z (mm)'); ylabel(ax, 'impedance (\Omega)'); grid(ax, 'on'); legend(ax, 'Location', 'southeast');
-title(ax, 'Rows at 29.8 and 41.5 mm do not give the stated value', 'FontWeight', 'normal');
-ax = nexttile(t); hold(ax, 'on');
-plot(ax, f, a, 'Color', c.paper, 'LineWidth', 2, 'DisplayName', 'widths as printed');
-plot(ax, f, b, 'Color', c.improved, 'LineWidth', 2.2, 'DisplayName', 'built to the stated impedances');
-finish_s(ax, 'Back to back |S11|');
 end
 
 function fig = show_steps()

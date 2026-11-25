@@ -617,7 +617,7 @@ How to read it:
 
 **Starting it.** From the project folder: `python3 run_demo.py` in WSL, or `python run_demo.py` in Windows. The script (standard library only):
 1. Finds MATLAB (newest `R*/bin/matlab.exe` under Program Files).
-2. Checks that openEMS (`openEMS.exe`, `AppCSXCAD.exe`, the `matlab` folder) and 29 files the demo plots are present, and prints "Checked openEMS and 29 files: all present." or a list of what is missing.
+2. Checks that openEMS (`openEMS.exe`, `AppCSXCAD.exe`, the `matlab` folder) and 26 files the demo plots are present, and prints "Checked openEMS and 26 files: all present." or a list of what is missing.
 3. Starts MATLAB in `src/` running `balun_demo`. A window titled "Wideband balun" with buttons appears in about 15 to 30 seconds.
 
 Alternative: open MATLAB in the `src` folder and type `balun_demo`.
@@ -637,7 +637,6 @@ Alternative: open MATLAB in the `src` folder and type `balun_demo`.
 *Validation*
 - **Structure B against the paper**: the paper design back to back, our |S11| and |S21| over the paper's CST and measured |S11| digitised from Fig. 7(d). Title gives the band edge.
 - **Mesh check**: the paper design back to back on three meshes: coarse (0.7 M cells, from 1.78 GHz), normal (2.8 M, from 1.78 GHz), fine (6.7 M, from 1.77 GHz). Left |S11|, right |S21|.
-- **Table I as printed**: left, impedance along z: the law of the stated values, the stated values, and the values computed from the printed widths (two rows off); right, back-to-back |S11| of the printed widths against the paper design.
 - **Current balance**: phase of Itop/Ibot (near 180°) and amplitude ratio in dB (near 0), paper design and improved, 1 to 15 GHz.
 - **Spiral antenna, S11**: the spiral with the paper design and with the improved balun under it, with the paper's CST and measured curves from Fig. 10.
 - **Spiral antenna, pattern**: polar plot of the normalised far field in the xz (E) and yz (H) planes, with a frequency menu (2, 2.5, 3, 4, 5, 6, 10, 15 GHz). At 10 GHz the paper's Fig. 11 CST curve is drawn too.

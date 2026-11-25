@@ -19,14 +19,14 @@ MATLAB_ROOTS = (Path("/mnt/c/Program Files/MATLAB"), Path("C:/Program Files/MATL
 
 NEEDED = [
     "src/balun_demo.m",
-    "geometry/paper_B.csv", "geometry/paper_B_stated.csv", "geometry/improved.csv",
+    "geometry/paper_B_stated.csv", "geometry/improved.csv",
     "geometry/step_exp60.csv", "geometry/step_klop45.csv",
     "results/run_info.csv", "results/live_improved.csv", "results/live_paper.csv",
-    "results/b2b_paper_B.csv", "results/b2b_paper_B_stated.csv", "results/b2b_paper_B_stated_fine.csv",
+    "results/b2b_paper_B_stated.csv", "results/b2b_paper_B_stated_fine.csv",
     "results/b2b_improved.csv", "results/b2b_step_exp60.csv", "results/b2b_step_klop45.csv",
     "results/single_paper_B_stated.csv", "results/single_improved.csv",
     "results/single_step_exp60.csv", "results/single_step_klop45.csv",
-    "results/profile_paper_B_stated.csv", "results/profile_improved.csv", "results/table1_check.csv",
+    "results/profile_paper_B_stated.csv", "results/profile_improved.csv",
     "results/movie_improved.mat", "results/spiral_full.csv", "results/spiral_full_improved.csv",
     "results/spiral_full_patterns.csv",
     "data/paper/fig7d_structure_B.csv", "data/paper/fig10_spiral.csv", "data/paper/fig11_pattern_10GHz.csv",

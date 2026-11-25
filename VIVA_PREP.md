@@ -16,7 +16,7 @@ No live solving in the 5 minutes. Every button below opens at once, from finishe
 | 0:40 to 1:15 | **Model and mesh in openEMS** | This is the model the solver ran: 3.08 million cells, 0.08 mm cells at the strip edges, copper and substrate losses, absorbing boundaries. |
 | 1:15 to 1:50 | **Pulse moving through the balun**, press Play | openEMS result: the pulse enters as microstrip, squeezes into the narrow strips, comes out balanced. |
 | 1:50 to 2:20 | **E field in the cross-section** | Left: field from strip down to a wide ground. Right: symmetric between two equal strips. That is the balun's job. |
-| 2:20 to 3:10 | **Structure B against the paper**, then **Table I as printed** | 1.78 to 15 GHz against the paper's 1.75, \|S21\| never below −0.98 dB. Two rows of the paper's Table I give the wrong impedance; built as printed they add two peaks near 6 GHz, so we built to the impedances the paper states. |
+| 2:20 to 3:10 | **Structure B against the paper** | 1.78 to 15 GHz against the paper's 1.75, \|S21\| never below −0.98 dB, same shape as the paper's CST curve. |
 | 3:10 to 4:30 | **What each change did**, then **Paper design against improved** | Goal: the whole L band from 1 GHz on the same 70 × 18 mm board. Taper 45 to 60 mm, because the paper wasted 20 mm on parallel strip. Exponential to Klopfenstein, the lowest cutoff for a given length. Alone: 1.04 and 1.14 GHz. Together: one balun from 0.95 GHz, back to back from 1.17 GHz. |
 | 4:30 to 5:00 | say it | Every paper result reproduced in openEMS, an error found in its Table I, and an improved balun covering L, S, C and X bands with better balance and lower loss. Simulation only; fabrication is next. |
 
@@ -33,7 +33,7 @@ Order, about 10 minutes:
 2. **Run simulation: improved (3 min).** Press it first, then keep talking. A console opens with the timestep, speed and field energy; the run stops when the energy is 50 dB below its peak. The window closes itself and the graph appears. The live run uses a coarser mesh (0.7 million cells instead of 3.1 million). Its graph draws the saved full run in grey behind it. Measured difference: band edge 1.16 GHz against 1.17 GHz (both shown in the title), worst |S11| within 0.3 dB, |S21| within 0.21 dB. Say openly that it is the coarse copy.
 3. **Pulse moving through the balun.** Drag the slider and stop in the taper. The pulse squeezes into the narrow strip at the centre and spreads out again.
 4. **E field in the cross-section.** Left: field goes from strip down to a wide ground (microstrip). Right: symmetric between two equal strips (balanced). This picture is what a balun does.
-5. **Structure B against the paper**, **Mesh check** (coarse 0.7 M, normal 2.8 M, fine 6.7 M cells: band edge 1.78, 1.78, 1.77 GHz), **Table I as printed**, **Current balance**, **Spiral S11**, **Pattern** (use the frequency menu; 10 GHz has the paper's curve on it).
+5. **Structure B against the paper**, **Mesh check** (coarse 0.7 M, normal 2.8 M, fine 6.7 M cells: band edge 1.78, 1.78, 1.77 GHz), **Current balance**, **Spiral S11**, **Pattern** (use the frequency menu; 10 GHz has the paper's curve on it).
 6. **Impedance along the taper**, **What each change did**, **Paper design against improved**.
 
 If the solver fails or you close its window, the graph of the saved coarse run comes up by itself, with "saved coarse run" in the title. **Show the last run again** does the same at any time.
@@ -44,7 +44,7 @@ There are two groups of changes. The first group was needed to reproduce the pap
 
 ### To reproduce the paper
 
-**1. Built to the impedances in Table I and did not use two of its printed widths.** With w = 1.2 mm and a 2 mm ground, the row at 29.8 mm gives 132.5 Ω, and the table says 110 Ω. The row at 41.5 mm gives 139.9 Ω, and the table says 150 Ω. We simulated both versions. The printed widths give two extra peaks (−6.7 dB at 5.42 to 6.10 GHz, −9.0 dB at 6.78 to 7.13 GHz) that the paper's own curve does not have. Button: Table I as printed.
+**1. Built to the impedances in Table I and did not use two of its printed widths.** With w = 1.2 mm and a 2 mm ground, the row at 29.8 mm gives 132.5 Ω, and the table says 110 Ω. The row at 41.5 mm gives 139.9 Ω, and the table says 150 Ω. We simulated both versions. The printed widths give two extra peaks (−6.7 dB at 5.42 to 6.10 GHz, −9.0 dB at 6.78 to 7.13 GHz) that the paper's own curve does not have.
 
 **2. Parallel strip 0.786 mm instead of 0.88 mm.** Our solver gives 178 Ω for 0.88 mm, and the closed form gives 180 Ω. The paper wants 188 Ω, which needs 0.786 mm.
 
